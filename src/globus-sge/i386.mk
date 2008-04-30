@@ -1,0 +1,1 @@
+GLOBUS_FLAVOR=gcc32

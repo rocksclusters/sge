@@ -1,0 +1,10 @@
+pe_name           mpi
+queue_list        all
+slots             999
+user_lists        NONE
+xuser_lists       NONE
+start_proc_args   /opt/gridengine/mpi/startmpi.sh $pe_hostfile
+stop_proc_args    /opt/gridengine/mpi/stopmpi.sh
+allocation_rule   $fill_up
+control_slaves    FALSE
+job_is_first_task TRUE

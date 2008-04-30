@@ -1,0 +1,33 @@
+<?xml version="1.0" standalone="no"?>
+
+<kickstart>
+
+	<description>
+
+	Ganglia view of SGE Queue
+
+	</description>
+
+	<changelog>
+	$Log: sge-ganglia.xml,v $
+	Revision 1.2  2005/08/24 23:34:43  bruno
+	update to sge6
+	
+	Revision 1.2  2005/03/29 03:14:58  tsailm
+	Initial checkin
+	
+	</changelog>
+
+	<package>sge-ganglia</package>
+
+<post>
+
+<file name="/var/www/html/homepage/24-queue.html">
+&lt;a href="ganglia/addons/rocks/queue.php"&gt;
+SGE Job Queue&lt;/a&gt;
+</file>
+
+</post>
+
+</kickstart> 
+

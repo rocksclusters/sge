@@ -1,0 +1,297 @@
+<chapter id="using" xreflabel="Using the Grid Roll">
+	<title>Using</title>
+
+<section id="using-sge" xreflabel="Using the SGE Roll">
+	<title>How to use SGE</title>
+
+<para>
+This section tells you how to get started using Sun Grid Engine (SGE). SGE is a distributed resource management software and it allows the resources within the cluster (cpu time,software, licenses etc) to be utilized effectively. Also, the SGE Roll sets up Sun Grid Engine such that NFS is not needed for it's operation. This provides a more scalable setup but it does mean that we will lose the high availability benefits that a SGE with NFS setup offers. Another thing that the Roll does is that that generic queues are setup automatically the moment new nodes are being integrated within the Rocks cluster and booted up.
+</para>
+
+</section>
+
+
+<section id="submitting-batch-jobs" xreflabel="Submitting Batch Jobs to SGE">
+	<title>Submitting Batch Jobs to SGE</title>
+
+<para>Batch jobs are submitted to SGE via scripts. Here is an example of a serial job script, <ulink url="examples/sleep.sh">sleep.sh</ulink>. It basically executes the sleep command.</para>
+                                                                                
+<screen>
+[sysadm1@frontend-0 sysadm1]$ cat sleep.sh
+#!/bin/bash
+#
+#$ -cwd
+#$ -j y
+#$ -S /bin/bash
+#
+date
+sleep 10
+date
+</screen>
+
+<note>
+<para>
+Entries which start with <literal>#$</literal> will be treated as SGE options.
+</para>
+<itemizedlist>
+<listitem>
+<para>
+<literal>-cwd</literal> means to execute the job for the current working directory.
+</para>
+</listitem>
+<listitem>
+<para>
+<literal>-j y</literal> means to merge the standard error stream into the standard output stream instead of having two separate error and output streams.
+</para>
+</listitem>
+<listitem>
+<para>
+<literal>-S /bin/bash</literal> specifies the interpreting shell for this job to be the Bash shell.
+</para>
+</listitem>
+</itemizedlist>
+</note>
+                                                                                
+<para>To submit this serial job script, you should use the
+<command>qsub</command> command.</para>
+
+<screen>
+[sysadm1@frontend-0 sysadm1]$ qsub sleep.sh
+your job 16 ("sleep.sh") has been submitted
+</screen>
+                                                                                
+                                                                                
+<para>
+Next, we'll submit a parallel job.
+First, let's get and compile a test MPI program.
+As a non-root user, execute:
+</para>
+
+<screen>
+$ cd $HOME
+$ mkdir test
+$ cd test
+$ cp /opt/mpi-tests/src/*.c .
+$ cp /opt/mpi-tests/src/Makefile .
+$ make
+</screen>
+
+<para>
+Now we'll create an SGE submission script for <emphasis>mpi-ring</emphasis>.
+The program <emphasis>mpi-ring</emphasis> sends a 1 MB message in a ring
+between all the processes of an MPI job.
+Process 0 sends a 1 MB message to process 1, then process 1 send a 1 MB message
+to process 2, etc.
+Create a file named <computeroutput>$HOME/test/mpi-ring.qsub</computeroutput>
+and put the following in it:
+</para>
+
+<screen>
+#!/bin/bash
+#
+#$ -cwd
+#$ -j y
+#$ -S /bin/bash
+#
+
+/opt/openmpi/bin/mpirun -np $NSLOTS $HOME/test/mpi-ring
+</screen>                                                                                
+<para>
+The command to submit a MPI parallel job script is similar to submitting a serial
+job script but you will need to use the <literal>-pe orte N</literal>.
+<literal>N</literal> refers to the number of processes that you want to
+allocate to the MPI program.
+Here's an example of submitting a job that will use 2 processors:
+</para>
+                                                                                
+<screen>
+$ qsub -pe orte 2 mpi-ring.qsub
+</screen>
+
+<para>
+When the job completes, the job's output will be in the file
+<computeroutput>mpi-ring.qsub.o*</computeroutput>.
+Error messages pertaining to the job will be in 
+<computeroutput>mpi-ring.qsub.po*</computeroutput>.
+</para>
+
+<para>
+To run the job on more processors, just change the number supplied to the
+<computeroutput>-pe orte</computeroutput> flag.
+Here's how to run the job on 16 processors:
+</para>
+
+<screen>
+$ qsub -pe orte 16 mpi-ring.qsub
+</screen>
+
+<para>
+If you need to delete an already submitted job, you can use <command>qdel</command> given it's job id. Here's an example of deleting a fluent job under SGE:
+</para>
+
+<screen>
+[sysadm1@frontend-0 sysadm1]$ qsub fluent.sh
+your job 31 ("fluent.sh") has been submitted
+$ qstat
+job-ID  prior name       user         state submit/start at     queue      master  ja-task-ID
+---------------------------------------------------------------------------------------------
+     31     0 fluent.sh  sysadm1      t     12/24/2003 01:10:28 comp-pvfs- MASTER
+$ qdel 31
+sysadm1 has registered the job 31 for deletion
+$ qstat
+$
+</screen>
+
+<para>
+Although the example job scripts are bash scripts, SGE can also accept other
+types of shell scripts.
+It is trivial to wrap serial programs into a SGE job script.
+Similarly, for MPI parallel jobs, you just need to use the correct
+<command>mpirun</command> launcher and to also add in the SGE variable,
+<literal>$NSLOTS</literal> within the job script.
+For other parallel jobs other than MPI, a Parallel Environment or PE needs to
+be defined.
+This is covered withn the SGE documentation found on Sun's web site.
+</para>
+</section>
+
+
+<section id="monitoring-sge" xreflabel="Monitoring SGE Jobs">
+<title>Monitoring SGE Jobs</title>
+
+<para>To monitor jobs under SGE, use the <command>qstat</command> command. When executed with no arguments, it will display a summarized list of jobs </para>
+
+<screen>
+[sysadm1@frontend-0 sysadm1]$ qstat
+job-ID  prior name       user         state submit/start at     queue      master  ja-task-ID
+---------------------------------------------------------------------------------------------
+     20     0 sleep.sh   sysadm1      t     12/23/2003 23:22:09 frontend-0 MASTER
+     21     0 sleep.sh   sysadm1      t     12/23/2003 23:22:09 frontend-0 MASTER
+     22     0 sleep.sh   sysadm1      qw    12/23/2003 23:22:06
+
+</screen>
+
+
+<para>Use <command>qstat -f</command> to display a more detailed list of jobs within SGE.</para>
+<screen>
+[sysadm1@frontend-0 sysadm1]$ qstat -f
+queuename            qtype used/tot. load_avg arch      states
+----------------------------------------------------------------------------
+comp-pvfs-0-0.q      BIP   0/2       0.18     glinux    
+----------------------------------------------------------------------------
+comp-pvfs-0-1.q      BIP   0/2       0.00     glinux    
+----------------------------------------------------------------------------
+comp-pvfs-0-2.q      BIP   0/2       0.05     glinux    
+----------------------------------------------------------------------------
+frontend-0.q         BIP   2/2       0.00     glinux
+     23     0 sleep.sh   sysadm1      t     12/23/2003 23:23:40 MASTER
+     24     0 sleep.sh   sysadm1      t     12/23/2003 23:23:40 MASTER
+                                                                                                                                                                              
+############################################################################
+ - PENDING JOBS - PENDING JOBS - PENDING JOBS - PENDING JOBS - PENDING JOBS
+############################################################################
+     25     0 linpack.sh sysadm1      qw    12/23/2003 23:23:32
+
+</screen>
+
+<para>You can also use <command>qstat</command> to query the status of a job, given it's job id. For this, you would use the <literal>-j N</literal> option where <literal>N</literal> would be the job id.</para>
+<screen>
+[sysadm1@frontend-0 sysadm1]$ qsub -pe mpich 1 single-xhpl.sh
+your job 28 ("single-xhpl.sh") has been submitted
+[sysadm1@frontend-0 sysadm1]$ qstat -j 28
+job_number:                 28
+exec_file:                  job_scripts/28
+submission_time:            Wed Dec 24 01:00:59 2003
+owner:                      sysadm1
+uid:                        502
+group:                      sysadm1
+gid:                        502
+sge_o_home:                 /home/sysadm1
+sge_o_log_name:             sysadm1
+sge_o_path:                 /opt/sge/bin/glinux:/usr/kerberos/bin:/usr/local/bin:/bin:/usr/bin:/usr/X11R6/bin:/opt/ganglia/bin:/opt/maui/bin:/opt/OpenPBS/bin:/opt/OpenPBS/sbin:/opt/rocks/bin:/opt/rocks/sbin:/home/sysadm1/bin
+sge_o_mail:                 /var/spool/mail/sysadm1
+sge_o_shell:                /bin/bash
+sge_o_workdir:              /home/sysadm1
+sge_o_host:                 frontend-0
+account:                    sge
+cwd:                        /home/sysadm1
+path_aliases:               /tmp_mnt/ * * /
+merge:                      y
+mail_list:                  sysadm1@frontend-0.public
+notify:                     FALSE
+job_name:                   single-xhpl.sh
+shell_list:                 /bin/bash
+script_file:                single-xhpl.sh
+parallel environment:  mpich range: 1
+scheduling info:            queue "comp-pvfs-0-1.q" dropped because it is temporarily not available
+                            queue "comp-pvfs-0-2.q" dropped because it is temporarily not available
+                            queue "comp-pvfs-0-0.q" dropped because it is temporarily not available
+
+</screen>
+
+</section>
+
+<section id="managing-queues" xreflabel="Managing SGE queues">
+<title>Managing SGE queues</title>
+
+<para>To display a list of queues within the Rocks cluster, use <command>qconf -sql</command>.</para>
+
+<screen>
+[sysadm1@frontend-0 sysadm1]$ qconf -sql
+comp-pvfs-0-0.q
+comp-pvfs-0-1.q
+comp-pvfs-0-2.q
+frontend-0.q
+</screen>
+
+<para>If there is a need to disable a particular queue for some reason, e.g scheduling that node for maintenance, use <command>qmod -d Q</command> where <literal>Q</literal> is the queue name. You will need to be a SGE manager in order to disable a queue like the <literal>root</literal> account. You can also use wildcards to select a particular range of queues.</para>
+
+<screen>[sysadm1@frontend-0 sysadm1]$ qstat -f
+queuename            qtype used/tot. load_avg arch      states
+----------------------------------------------------------------------------
+comp-pvfs-0-0.q      BIP   0/2       0.10     glinux      
+----------------------------------------------------------------------------
+comp-pvfs-0-1.q      BIP   0/2       0.58     glinux      
+----------------------------------------------------------------------------
+comp-pvfs-0-2.q      BIP   0/2       0.02     glinux      
+----------------------------------------------------------------------------
+frontend-0.q         BIP   0/2       0.01     glinux
+[sysadm1@frontend-0 sysadm1]$ su -
+Password:
+[root@frontend-0 root]# qmod -d comp-pvfs-0-0.q
+Queue "comp-pvfs-0-0.q" has been disabled by root@frontend-0.local
+[root@frontend-0 root]# qstat -f
+queuename            qtype used/tot. load_avg arch      states
+----------------------------------------------------------------------------
+comp-pvfs-0-0.q      BIP   0/2       0.10     glinux    d  
+----------------------------------------------------------------------------
+comp-pvfs-0-1.q      BIP   0/2       0.58     glinux      
+----------------------------------------------------------------------------
+comp-pvfs-0-2.q      BIP   0/2       0.02     glinux      
+----------------------------------------------------------------------------
+frontend-0.q         BIP   0/2       0.01     glinux
+</screen>
+<para>To enable back the queue, you can use <command>qmod -e Q</command>. Here is an example of <literal>Q</literal> being specified as range of queues via wildcards.</para>
+<screen>
+[root@frontend-0 root]# qmod -e comp-pvfs-*
+Queue "comp-pvfs-0-0.q" has been enabled by root@frontend-0.local
+root - queue "comp-pvfs-0-1.q" is already enabled
+root - queue "comp-pvfs-0-2.q" is already enabled
+[root@frontend-0 root]# qstat -f
+queuename            qtype used/tot. load_avg arch      states
+----------------------------------------------------------------------------
+comp-pvfs-0-0.q      BIP   0/2       0.10     glinux       
+----------------------------------------------------------------------------
+comp-pvfs-0-1.q      BIP   0/2       0.58     glinux      
+----------------------------------------------------------------------------
+comp-pvfs-0-2.q      BIP   0/2       0.02     glinux      
+----------------------------------------------------------------------------
+frontend-0.q         BIP   0/2       0.01     glinux
+
+</screen>
+
+<para>For more information in using SGE, please refer to the SGE documentation and the man pages.</para>
+</section>
+
+
+</chapter>

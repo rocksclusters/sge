@@ -1,0 +1,64 @@
+<!--
+$Id: appendix.sgml,v 1.1 2006/09/15 01:42:11 mjk Exp $
+
+Appendix for Copyright and License notices
+
+@Copyright@
+@Copyright@
+
+$Log: appendix.sgml,v $
+Revision 1.1  2006/09/15 01:42:11  mjk
+*** empty log message ***
+
+Revision 1.1  2006/09/15 01:24:14  mjk
+*** empty log message ***
+
+Revision 1.1  2006/09/14 23:54:35  mjk
+*** empty log message ***
+
+
+-->
+
+<appendix id="rocks-copyright" xreflabel="Appendix A: Rocks Copyright">
+<title>Rocks Copyright</title>
+<para>
+<screen>
+&rockscopyright;
+</screen>
+</para>
+</appendix>
+
+<appendix>
+<title>Third Party Copyrights and Licenses</title>
+<para>
+This section enumerates the licenses from all the third party software
+components of this Roll.  A "best effort" attempt has been made to
+insure the complete and current licenses are listed.  In the case of
+errors or ommisions please contact the maintainer of this Roll.  For
+more information on the licenses of any components please consult with
+the original author(s) or see the Rocks CVS 
+<ulink url="http://cvs.rocksclusters.org">repository</ulink>.
+</para>
+
+<section><title>Sun Grid Engine</title>
+<para><screen>
+Sun Industry Standards Source License Version 1.2
+=================================================
+The contents of this file are subject to the Sun Industry Standards
+Source License Version 1.2 (the "License"); You may not use this file
+except in compliance with the License. You may obtain a copy of the
+License at http://gridengine.sunsource.net/Gridengine_SISSL_license.html
+ 
+Software provided under this License is provided on an "AS IS" basis,
+WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING,
+WITHOUT LIMITATION, WARRANTIES THAT THE SOFTWARE IS FREE OF DEFECTS,
+MERCHANTABLE, FIT FOR A PARTICULAR PURPOSE, OR NON-INFRINGING.
+See the License for the specific provisions governing your rights and
+obligations concerning the Software.
+ 
+The Initial Developer of the Original Code is: Sun Microsystems, Inc.
+ 
+Copyright: 2001 by Sun Microsystems, Inc.
+</screen></para></section>
+
+</appendix>

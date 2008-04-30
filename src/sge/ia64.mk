@@ -1,0 +1,1 @@
+SGE_ARCH = lx26-ia64

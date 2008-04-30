@@ -1,0 +1,256 @@
+<?xml version="1.0" standalone="no"?>
+
+<kickstart>
+
+	<description>
+
+	Sun Grid Engine master server configuration. 
+
+	</description>
+
+	<changelog>
+	$Log: sge-server.xml,v $
+	Revision 1.36  2008/04/21 16:59:49  bruno
+	x11 deprecated packages no longer exist in RHEL 5
+	
+	Revision 1.35  2008/04/15 22:17:37  bruno
+	use rocks command line to cleanup SGE state for a removed node
+	
+	Revision 1.34  2008/04/10 22:42:39  bruno
+	add anoop's openmpi changes
+	
+	Revision 1.33  2008/04/02 20:05:51  bruno
+	ensure that act_qmaster has the frontend's FQDN in it. there is an SGE
+	script or service which changes this value to the local name of the frontend
+	which causes the service to not start on the next boot.
+	
+	Revision 1.32  2008/03/17 17:43:38  bruno
+	junit is needed to build SGE
+	
+	Revision 1.31  2008/03/05 19:08:12  bruno
+	make sure the hostname is the FQDN
+	
+	Revision 1.30  2008/02/29 18:39:24  bruno
+	extra packages to help build SGE
+	
+	Revision 1.29  2007/04/25 04:54:49  ssy
+	Fix reporting file permission
+	
+	Revision 1.28  2007/04/14 15:50:42  ssy
+	Better support for globus-sge
+	Prepare for ia64
+	
+	Revision 1.27  2007/04/11 04:07:16  ssy
+	Make gpt-postinstall ready for Globus-ws
+	The roll shoul works now. Need to conduct more tests on real cluster.
+	
+	Revision 1.26  2007/04/10 11:47:47  ssy
+	Typo
+	
+	Revision 1.25  2007/04/03 14:34:39  ssy
+	Add SGE WSGram support
+	Old Pre-wsgram removed
+	Not fully tested yet!
+	
+	Revision 1.24  2006/09/07 18:01:11  bruno
+	remove references to S95sgemaster and K95sgemaster -- the new sge
+	initialization now correctly creates the startup scripts.
+	
+	thanks to Jesse Becker for the bug report.
+	
+	Revision 1.23  2006/08/09 23:09:40  mjk
+	- Configure GRAM for Globus
+	- Removed dead code
+	
+	Revision 1.22  2006/06/20 22:42:20  bruno
+	rocks-sge-post-qmaster is no longer a package
+	
+	Revision 1.21  2006/03/17 15:44:47  bruno
+	added lam pe -- thanks to Kevin Higgins for the code.
+	
+	Revision 1.20  2006/02/13 20:16:18  bruno
+	move the sge user creation to the base package.
+	
+	this allows sge to properly configure itself on the compute nodes even
+	if 411 is not functioning.
+	
+	Revision 1.19  2005/10/28 02:12:17  bruno
+	configure qrsh correctly (which also fixes qmake).
+	
+	Revision 1.18  2005/10/25 19:36:50  bruno
+	make sure SGE is configured before rocks-dist is run.
+	
+	this handles the case where:
+	
+	the problem is that right after the frontend comes up and you see the
+	boot prompt, rocks is still configuring the frontend (e.g., it is
+	rebuilding the distro and performing the final configuration of SGE,
+	etc.).
+	
+	if during this time you login in and run 'insert-ethers' and if a
+	compute node is discovered, the frontend is not 'ready' to accept new
+	compute nodes and thus fails as described above.
+	
+	Revision 1.17  2005/10/11 02:24:29  bruno
+	added packages in order to build sge on x86_64
+	
+	Revision 1.16  2005/09/06 23:33:52  bruno
+	source /etc/profile.d/sge-binaries.sh in order to set all the right
+	variables in order for the SGE installation tools to set up the environment
+	correctly
+	
+	Revision 1.15  2005/08/24 23:34:43  bruno
+	update to sge6
+	
+	Revision 1.1  2005/03/29 03:04:23  tsailm
+	Initial checkin for sge6
+	
+	</changelog>
+
+	<package>roll-sge-usersguide</package>
+	<package>sge-ganglia</package>
+	<package>sge-insert-ethers</package>
+	<package>rocks-command-sge</package>
+	<package>db4-utils</package>
+	<package>openmotif-devel</package>
+	<package>pam-devel</package>
+	<package>javacc</package>
+	<package>libXp-devel</package>
+	<package>junit</package>
+
+<post>
+
+<file name="/var/www/html/homepage/24-queue.html">
+&lt;a href="ganglia/addons/rocks/queue.php"&gt;
+SGE Job Queue&lt;/a&gt;
+</file>
+
+</post>
+
+
+<post>
+
+<file name="/opt/gridengine/mpi/rocks-mpi.template">
+pe_name           mpi
+slots             9999
+user_lists        NONE
+xuser_lists       NONE
+start_proc_args   /opt/gridengine/mpi/startmpi.sh $pe_hostfile
+stop_proc_args    /opt/gridengine/mpi/stopmpi.sh
+allocation_rule   $fill_up
+control_slaves    FALSE
+job_is_first_task TRUE
+urgency_slots     min
+</file>
+
+<file name="/opt/gridengine/mpi/rocks-mpich.template">
+pe_name          mpich
+slots            9999
+user_lists       NONE
+xuser_lists      NONE
+start_proc_args  /opt/gridengine/mpi/startmpi.sh -catch_rsh $pe_hostfile
+stop_proc_args   /opt/gridengine/mpi/stopmpi.sh
+allocation_rule  $fill_up
+control_slaves   TRUE
+job_is_first_task FALSE
+urgency_slots     min
+</file>
+
+<file name="/opt/gridengine/mpi/rocks-ompi.template">
+pe_name           orte
+slots             9999
+user_lists        NONE
+xuser_lists       NONE
+start_proc_args   /bin/true
+stop_proc_args    /bin/true
+allocation_rule   $fill_up
+control_slaves    TRUE
+job_is_first_task FALSE
+urgency_slots     min
+</file>
+
+
+<file name="/etc/rc.d/rocksconfig.d/post-00-sge-qmaster" perms="0755">
+#!/bin/bash
+
+. /etc/profile.d/sge-binaries.sh
+
+# sets the ownership to sge user
+chown -R 400.400 $SGE_ROOT
+
+# Setup QMaster
+cd $SGE_ROOT &amp;&amp; \
+	./inst_sge -m -auto ./util/install_modules/sge_configuration.conf \
+	&gt;&gt; /dev/null 2&gt;&amp;1
+
+#
+# need to fix up sgemaster script. there is an SGE service which overwrites
+# the act_qmaster file and places the local hostname (not the FQDN) into
+# the file, which causes SGE to not start on the next boot
+#
+echo "/bin/hostname --fqdn > $SGE_ROOT/default/common/act_qmaster" >> \
+	$SGE_ROOT/default/common/sgemaster
+
+cp $SGE_ROOT/default/common/sgemaster /etc/rc.d/init.d
+
+/etc/rc.d/init.d/sgemaster stop
+
+#
+# modify the configure to handle qrsh, et. al.
+#
+echo "qrsh_command                 /usr/bin/ssh
+rsh_command                  /usr/bin/ssh
+rlogin_command               /usr/bin/ssh
+rsh_daemon                   /usr/sbin/sshd
+qrsh_daemon                  /usr/sbin/sshd" &gt;&gt; default/common/configuration
+
+cat default/common/configuration | sed -e "s/reporting=false/reporting=true/g" -e "s/joblog=false/joblog=true/g" &gt; /tmp/sge-default-common-config.conf
+mv -f /tmp/sge-default-common-config.conf default/common/configuration
+chown 400:400 default/common/configuration
+
+/etc/rc.d/init.d/sgemaster start
+
+# add default MPI parallel environments
+$SGE_ROOT/bin/$SGE_ARCH/qconf -Ap $SGE_ROOT/mpi/rocks-mpich.template \
+	&gt;&gt; /dev/null 2&gt;&amp;1
+$SGE_ROOT/bin/$SGE_ARCH/qconf -Ap $SGE_ROOT/mpi/rocks-mpi.template \
+	&gt;&gt; /dev/null 2&gt;&amp;1
+$SGE_ROOT/bin/$SGE_ARCH/qconf -Ap $SGE_ROOT/mpi/rocks-ompi.template \
+	&gt;&gt; /dev/null 2&gt;&amp;1
+
+# add this node as a submit host
+$SGE_ROOT/bin/$SGE_ARCH/qconf -as `/bin/hostname --fqdn` \
+	&gt;&gt; /dev/null 2&gt;&amp;1
+
+# add mpich mpi openmpi to all.q pe list
+$SGE_ROOT/bin/$SGE_ARCH/qconf -rattr queue pe_list 'make mpich mpi orte' all.q \
+	&gt;&gt; /dev/null 2&gt;&amp;1
+
+
+# Setup the Globus GRAM if Globus exists
+
+if [ -f /etc/profile.d/globus.sh ]; then
+	source /etc/profile.d/globus.sh
+	touch $SGE_ROOT/default/common/reporting
+	chown 400:400 $SGE_ROOT/default/common/reporting
+	$GLOBUS_LOCATION/sbin/gpt-postinstall
+	if [ -d /opt/mpich/gnu/bin ]; then
+		export PATH=/opt/mpich/gnu/bin:$PATH
+	fi
+	# re-run jobmanager setup again so it points to correct PE
+	[ -f /etc/profile.d/java.sh ] &amp;&amp; source /etc/profile.d/java.sh
+	[ -f /etc/profile.d/apache-ant.sh ] &amp;&amp; source /etc/profile.d/apache-ant.sh
+	if [ X"$ANT_HOME" != X ]; then
+		export PATH="$ANT_HOME/bin:$PATH"
+	fi
+
+	(cd $GLOBUS_LOCATION/setup/globus &amp;&amp; rm -f config.cache &amp;&amp; ./setup-globus-job-manager-sge --mpi-pe=mpich)
+fi
+
+
+rm /etc/rc.d/rocksconfig.d/post-00-sge-qmaster
+</file>
+
+</post>
+
+</kickstart> 

@@ -1,0 +1,20 @@
+<!--
+$Id: installing.sgml,v 1.4 2006/09/21 04:17:13 mjk Exp $
+
+@Copyright@
+@Copyright@
+
+$Log: installing.sgml,v $
+Revision 1.4  2006/09/21 04:17:13  mjk
+major doc refresh
+
+-->
+
+<chapter id="installing" xreflabel="Installing">
+
+<title>Installing</title>
+
+&source_roll-installing-standard;
+&source_roll-installing-not-onthefly;
+
+</chapter>
