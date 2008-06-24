@@ -62,6 +62,12 @@
 # @Copyright@
 #
 # $Log: sge.py,v $
+# Revision 1.25  2008/06/24 19:18:28  bruno
+# fix for getting user submitted jobs into the 'Job Queue' display on the
+# ganglia web browser.
+#
+# also, a fix to correct the number of total slots as reported by SGE.
+#
 # Revision 1.24  2008/03/06 23:41:57  mjk
 # copyright storm on
 #
@@ -275,7 +281,7 @@ class SGE6(gmon.events.Metric):
 		self.parser.reset()
 		self.handler.reset()
 		
-		f = os.popen("%s -f -xml" % (self.qstat))
+		f = os.popen("%s -f -u \* -xml" % (self.qstat))
 
 		try:
 			self.parser.parse(f)
@@ -348,13 +354,18 @@ class QstatHandler(rocks.util.ParseXML):
 			print ' warning - cannot understand node Q %s' \
 				% self.text
 			self.nodename = 'unknown'
+
+	def startElement_slots_used(self, name, attrs):
+		self.text = ''
+	
+	def endElement_slots_used(self, name):
+		self.slots_used = int(self.text)
 		
 	def startElement_slots_total(self, name, attrs):
 		self.text = ''
 	
 	def endElement_slots_total(self, name):
-		self.thisqueue.slots += int(self.text)
-		#print self.thisqueue
+		self.thisqueue.slots = int(self.text) - self.slots_used
 		
 	def startElement_job_list(self, name, attrs):
 		pass
