@@ -62,6 +62,9 @@
 # @Copyright@
 #
 # $Log: sge.py,v $
+# Revision 1.26  2008/07/02 20:58:50  bruno
+# one more tweak to get the 'job queue' right
+#
 # Revision 1.25  2008/06/24 19:18:28  bruno
 # fix for getting user submitted jobs into the 'Job Queue' display on the
 # ganglia web browser.
@@ -365,7 +368,7 @@ class QstatHandler(rocks.util.ParseXML):
 		self.text = ''
 	
 	def endElement_slots_total(self, name):
-		self.thisqueue.slots = int(self.text) - self.slots_used
+		self.thisqueue.slots += (int(self.text) - self.slots_used)
 		
 	def startElement_job_list(self, name, attrs):
 		pass
