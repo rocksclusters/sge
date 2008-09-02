@@ -11,6 +11,9 @@
 
 	<changelog>
 	$Log: sge.xml,v $
+	Revision 1.19  2008/09/02 22:15:42  bruno
+	don't require the HPC roll for SGE
+	
 	Revision 1.18  2007/04/14 15:50:42  ssy
 	Better support for globus-sge
 	Prepare for ia64
@@ -45,7 +48,7 @@
 		<to>sge-client</to>
 	</edge>
 
-	<edge from="hpc-server">
+	<edge from="server">
 		<to>sge-server</to>
 	</edge>
 
