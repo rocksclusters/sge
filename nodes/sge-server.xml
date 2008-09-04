@@ -10,6 +10,9 @@
 
 	<changelog>
 	$Log: sge-server.xml,v $
+	Revision 1.37  2008/09/04 20:29:25  bruno
+	added phil's bitchin' cluster reinstall qsub script
+	
 	Revision 1.36  2008/04/21 16:59:49  bruno
 	x11 deprecated packages no longer exist in RHEL 5
 	
@@ -249,6 +252,38 @@ fi
 
 
 rm /etc/rc.d/rocksconfig.d/post-00-sge-qmaster
+</file>
+
+</post>
+
+<post>
+
+<!-- reinstall a cluster via SGE -->
+<file name="/opt/gridengine/examples/jobs/sge-reinstall.sh" perms="0744">
+#!/bin/sh
+
+ME=`hostname`
+EXECHOSTS=`qconf -sel`
+
+for TARGETHOST in $EXECHOSTS; do
+	if [ "$ME" == "$TARGETHOST" ]; then
+		echo "Skipping $ME. This is the submission host"
+	else
+		numprocs=`qconf -se $TARGETHOST | \
+			awk '/^processors/ {print $2}'`
+		/opt/rocks/bin/rocks set host pxeboot action=install $TARGETHOST
+		qsub -p 1024 -pe mpi $numprocs -q all.q@$TARGETHOST \
+			/opt/gridengine/examples/jobs/reboot.qsub
+		echo "Set $TARGETHOST for Reinstallation"
+	fi
+done
+</file>
+
+<file name="/opt/gridengine/examples/jobs/reboot.qsub">
+#!/bin/sh
+
+logger -p local0.alert "Rebooting via SGE at `date`"
+/sbin/init 6
 </file>
 
 </post>
