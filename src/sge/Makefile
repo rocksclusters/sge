@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.33 2008/04/22 23:07:22 bruno Exp $
+# $Id: Makefile,v 1.34 2008/09/04 21:25:37 bruno Exp $
 #
 # @Copyright@
 # 
@@ -55,6 +55,9 @@
 # @Copyright@
 #
 # $Log: Makefile,v $
+# Revision 1.34  2008/09/04 21:25:37  bruno
+# build fix -- thanks 'noop dog!
+#
 # Revision 1.33  2008/04/22 23:07:22  bruno
 # qlogin and qrsh now works with latest SGE
 #
@@ -130,7 +133,7 @@ ROCKSROOT       = ../../../../..
 -include $(ROCKSROOT)/etc/Rules.mk
 include Rules.mk
 
-DISTPATH=`rocks-dist --path=dist.getRPMSPath paths`
+DISTPATH=`rocks report distro`/rocks-dist/$(ARCH)/RedHat/RPMS
 
 
 build:	prep patch
@@ -145,9 +148,7 @@ build:	prep patch
 	)
 
 prep:
-	tar zvfx ge-$(VERSION)_TAG-src.tar.gz
-
-	rocks-dist --notorrent dist
+	tar zfx ge-$(VERSION)_TAG-src.tar.gz
 	mkdir -p $(PWD)/gridengine/source/$(SGE_ARCH)/var/lib/rpm
 	rpm -ivh --root=$(PWD)/gridengine/source/$(SGE_ARCH) \
 		--nodeps --noscripts \
@@ -165,11 +166,12 @@ patch:
 	)
 
 install::
-	( cd gridengine/source ; \
-		mkdir -p $(RPM_BUILD_ROOT)/$(PKGROOT) ; \
+	mkdir -p $(ROOT)/$(PKGROOT) ; \
+	( \
+		cd gridengine/source ; \
 		cp ../../distinst.private . ; \
 		ln -s usr/bin $(SGE_ARCH)/bin ; \
-		echo Y | SGE_ROOT=$(RPM_BUILD_ROOT)/$(PKGROOT) \
+		echo Y | SGE_ROOT=$(ROOT)/$(PKGROOT) \
 			scripts/distinst -local -noexit -allall $(SGE_ARCH) ; \
 	)
 
