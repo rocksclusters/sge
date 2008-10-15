@@ -2,7 +2,7 @@
 #
 # This file should remain OS independent
 #
-# $Id: bootstrap.sh,v 1.5 2008/03/06 23:41:57 mjk Exp $
+# $Id: bootstrap.sh,v 1.6 2008/10/15 20:13:05 mjk Exp $
 #
 # @Copyright@
 # 
@@ -58,6 +58,10 @@
 # @Copyright@
 #
 # $Log: bootstrap.sh,v $
+# Revision 1.6  2008/10/15 20:13:05  mjk
+# - more changes to build outside of the tree
+# - removed some old fds-only targets
+#
 # Revision 1.5  2008/03/06 23:41:57  mjk
 # copyright storm on
 #
@@ -75,7 +79,7 @@
 #
 #
 
-. ../etc/bootstrap-functions.sh
+. $ROLLSROOT/etc/bootstrap-functions.sh
 
 install_os_packages sge-server
 install_os_packages sge-base

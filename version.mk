@@ -1,3 +1,4 @@
+ROLLNAME = sge
 RELEASE = 0
 COLOR   = plum
 
