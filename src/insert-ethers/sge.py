@@ -5,7 +5,7 @@
 # 
 # 				Rocks(r)
 # 		         www.rocksclusters.org
-# 		            version 5.0 (V)
+# 		           version 5.1  (VI)
 # 
 # Copyright (c) 2000 - 2008 The Regents of the University of California.
 # All rights reserved.	
@@ -55,6 +55,9 @@
 # @Copyright@
 #
 # $Log: sge.py,v $
+# Revision 1.20  2008/10/18 00:56:14  mjk
+# copyright 5.1
+#
 # Revision 1.19  2008/04/25 19:57:02  bruno
 # speed up 'rocks sync config' by 10x
 #

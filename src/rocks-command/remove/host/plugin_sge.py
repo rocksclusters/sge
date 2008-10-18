@@ -1,10 +1,10 @@
-# $Id: plugin_sge.py,v 1.2 2008/04/17 21:59:50 bruno Exp $
+# $Id: plugin_sge.py,v 1.3 2008/10/18 00:56:14 mjk Exp $
 # 
 # @Copyright@
 # 
 # 				Rocks(r)
 # 		         www.rocksclusters.org
-# 		            version 5.0 (V)
+# 		           version 5.1  (VI)
 # 
 # Copyright (c) 2000 - 2008 The Regents of the University of California.
 # All rights reserved.	
@@ -54,6 +54,9 @@
 # @Copyright@
 #
 # $Log: plugin_sge.py,v $
+# Revision 1.3  2008/10/18 00:56:14  mjk
+# copyright 5.1
+#
 # Revision 1.2  2008/04/17 21:59:50  bruno
 # fix host remove SGE plugin
 #
