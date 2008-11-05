@@ -1,5 +1,5 @@
 # 
-# $Id: Makefile,v 1.22 2008/10/18 00:56:14 mjk Exp $
+# $Id: Makefile,v 1.23 2008/11/05 17:24:22 bruno Exp $
 #
 # @Copyright@
 # 
@@ -55,6 +55,9 @@
 # @Copyright@
 #
 # $Log: Makefile,v $
+# Revision 1.23  2008/11/05 17:24:22  bruno
+# fix to build usersguide
+#
 # Revision 1.22  2008/10/18 00:56:14  mjk
 # copyright 5.1
 #
@@ -127,7 +130,6 @@ install:: build
 	install -ma+r stylesheet-images/{*.gif,*.png} \
 		$(ROOT)/$(PKGROOT)/stylesheet-images/
 	install -ma+r examples/*.sh	$(ROOT)/$(PKGROOT)/examples/
-	install -ma+r examples/*.dat	$(ROOT)/$(PKGROOT)/examples/
 	install -ma+r rocks.css $(ROOT)/$(PKGROOT)/
 
 
