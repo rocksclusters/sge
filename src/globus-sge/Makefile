@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.8 2008/10/18 00:56:14 mjk Exp $
+# $Id: Makefile,v 1.9 2008/11/30 19:32:48 anoop Exp $
 #
 # @Copyright@
 # 
@@ -55,6 +55,9 @@
 # @Copyright@
 #
 # $Log: Makefile,v $
+# Revision 1.9  2008/11/30 19:32:48  anoop
+# Added support for SGE on Solaris
+#
 # Revision 1.8  2008/10/18 00:56:14  mjk
 # copyright 5.1
 #
@@ -84,17 +87,11 @@
 #
 
 PKGROOT = /opt/globus
-REDHAT.ROOT = $(PWD)/../../
-ROCKSROOT = ../../../../..
-ROCKSROOT.ABSOLUTE = $(shell cd $(ROCKSROOT); pwd)
-# FIXME: Copied from $(ROCKSROOT)/etc/Rules.mk
-ARCH.BIN = $(ROCKSROOT.ABSOLUTE)/bin/arch
-ARCH = $(shell if [ ! -x ./_arch ]; then cp $(ARCH.BIN) _arch; fi; ./_arch)
+REDHAT.ROOT = $(CURDIR)/../../
+-include $(ROCKSROOT)/etc/Rules.mk
+include Rules.mk
 -include $(ARCH).mk
-#-include $(ROCKSROOT)/etc/Rules.mk
-#include Rules.mk
 
-#GLOBUS_FLAVOR=$(shell $(PKGROOT)/sbin/gpt-flavor-configuration  | egrep "^gcc.*:" | head -1 | sed "s/://g")
 RPM_ARCH=$(shell uname -m | egrep -q "i.86" && echo i386 || uname -m)
 
 
@@ -129,4 +126,5 @@ rpm:: $(GLOBUS_NOARCH_PKGS) $(GLOBUS_ARCH_PKGS)
 	cp -f *.rpm ../../RPMS/$(RPM_ARCH)
 
 clean:: 
+	rm -rf $(GLOBUS_NOARCH_PKGS) $(GLOBUS_ARCH_PKGS)
 	rm -fr *.rpm

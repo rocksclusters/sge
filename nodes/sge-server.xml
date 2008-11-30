@@ -10,6 +10,9 @@
 
 	<changelog>
 	$Log: sge-server.xml,v $
+	Revision 1.38  2008/11/30 19:32:48  anoop
+	Added support for SGE on Solaris
+	
 	Revision 1.37  2008/09/04 20:29:25  bruno
 	added phil's bitchin' cluster reinstall qsub script
 	
@@ -203,9 +206,7 @@ cp $SGE_ROOT/default/common/sgemaster /etc/rc.d/init.d
 #
 echo "qrsh_command                 /usr/bin/ssh
 rsh_command                  /usr/bin/ssh
-rlogin_command               /usr/bin/ssh
-rsh_daemon                   /usr/sbin/sshd
-qrsh_daemon                  /usr/sbin/sshd" &gt;&gt; default/common/configuration
+rlogin_command               /usr/bin/ssh" &gt;&gt; default/common/configuration
 
 cat default/common/configuration | sed -e "s/reporting=false/reporting=true/g" -e "s/joblog=false/joblog=true/g" &gt; /tmp/sge-default-common-config.conf
 mv -f /tmp/sge-default-common-config.conf default/common/configuration

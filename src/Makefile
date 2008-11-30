@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.12 2008/10/18 00:56:13 mjk Exp $
+# $Id: Makefile,v 1.13 2008/11/30 19:32:48 anoop Exp $
 #
 # @Copyright@
 # 
@@ -54,6 +54,9 @@
 # @Copyright@
 #
 # $Log: Makefile,v $
+# Revision 1.13  2008/11/30 19:32:48  anoop
+# Added support for SGE on Solaris
+#
 # Revision 1.12  2008/10/18 00:56:13  mjk
 # copyright 5.1
 #
@@ -103,13 +106,12 @@
 # *** empty log message ***
 #
 
+-include $(shell $(ROCKSROOT)/bin/arch).mk
+-include $(shell $(ROCKSROOT)/bin/os).mk
 
+default: pkg
 
-SRCDIRS = `find . -type d -maxdepth 1 -not -name CVS -not -name .`
-
-default:	rpm
-
-copyright rpm clean::
+copyright rpm pkg clean::
 	for i in $(SRCDIRS) ; do \
-		(cd $$i; make $@) ; \
+		(cd $$i; $(MAKE) $@) ; \
 	done

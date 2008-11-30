@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.13 2008/10/18 00:56:14 mjk Exp $
+# $Id: Makefile,v 1.14 2008/11/30 19:32:48 anoop Exp $
 #
 # @Copyright@
 # 
@@ -54,6 +54,9 @@
 # @Copyright@
 #
 # $Log: Makefile,v $
+# Revision 1.14  2008/11/30 19:32:48  anoop
+# Added support for SGE on Solaris
+#
 # Revision 1.13  2008/10/18 00:56:14  mjk
 # copyright 5.1
 #
@@ -105,7 +108,7 @@
 
 PKGROOT = /opt/rocks
 METRICS = $(wildcard metrics/*.py)
-REDHAT.ROOT = $(PWD)/../../
+REDHAT.ROOT = $(CURDIR)/../../
 
 ROCKSROOT = ../../../../..
 -include $(ROCKSROOT)/etc/Rules.mk
@@ -118,7 +121,7 @@ build:
 
 install:: $(SCRIPTS)
 	mkdir -p $(ROOT)/$(PY.ROCKS)/gmon/metrics
-	install -ma+r $(METRICS) $(ROOT)/$(PY.ROCKS)/gmon/metrics
+	$(INSTALL) -m0755 $(METRICS) $(ROOT)/$(PY.ROCKS)/gmon/metrics
 
 clean::
 	rm -f $(SCRIPTS)

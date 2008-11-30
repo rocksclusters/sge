@@ -1,5 +1,5 @@
 # --------------------------------------------------- -*- Makefile -*- --
-# $Id: Makefile,v 1.7 2008/10/18 00:56:14 mjk Exp $
+# $Id: Makefile,v 1.8 2008/11/30 19:32:48 anoop Exp $
 #
 # @Copyright@
 # 
@@ -55,6 +55,9 @@
 # @Copyright@
 #
 # $Log: Makefile,v $
+# Revision 1.8  2008/11/30 19:32:48  anoop
+# Added support for SGE on Solaris
+#
 # Revision 1.7  2008/10/18 00:56:14  mjk
 # copyright 5.1
 #
@@ -79,8 +82,7 @@
 
 PKGROOT	     = /opt/gridengine
 
-REDHAT.ROOT     = $(PWD)/../../
-ROCKSROOT       = ../../../../..
+REDHAT.ROOT     = $(CURDIR)/../../
 -include $(ROCKSROOT)/etc/Rules.mk
 include Rules.mk
 
@@ -88,5 +90,4 @@ build:
 
 install::
 	mkdir -p $(ROOT)/$(PKGROOT)/lib
-	install -m755 *.jar $(ROOT)/$(PKGROOT)/lib/
-
+	$(INSTALL) -m755 *.jar $(ROOT)/$(PKGROOT)/lib/

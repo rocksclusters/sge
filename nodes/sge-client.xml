@@ -10,6 +10,9 @@
 
 	<changelog>
 	$Log: sge-client.xml,v $
+	Revision 1.16  2008/11/30 19:32:48  anoop
+	Added support for SGE on Solaris
+	
 	Revision 1.15  2005/08/31 22:30:31  bruno
 	make sge configuration during the first boot quiet
 	
@@ -70,7 +73,9 @@ cat /opt/gridengine/default/common/bootstrap
 cat /opt/gridengine/default/common/sgeexecd
 </eval>
 </file>
+</post>
 
+<post os="linux">
 <file name="/etc/rc.d/rocksconfig.d/post-91-sge-execd" perms="0755">
 #!/bin/bash
 
@@ -88,8 +93,14 @@ cd $SGE_ROOT &amp;&amp; \
 
 rm /etc/rc.d/rocksconfig.d/post-91-sge-execd
 </file>
+</post>
+
+<post os="sunos">
+sysidconfig -a /opt/gridengine/share/sge_exec_setup.sh
+mkdir -p /var/svc/manifest/network/sge/
+cp /opt/gridengine/share/sge_exec.xml /var/svc/manifest/network/sge/execd.xml
+<service name="network/sge/execd" enabled="yes"/>
 
 </post>
 
-</kickstart> 
-
+</kickstart>
