@@ -11,6 +11,9 @@
 
 	<changelog>
 	$Log: sge.xml,v $
+	Revision 1.20  2008/12/19 22:12:18  mjk
+	added sge attribute for cond edges
+	
 	Revision 1.19  2008/09/02 22:15:42  bruno
 	don't require the HPC roll for SGE
 	
@@ -44,12 +47,14 @@
 
 	<!-- Setup the SGE Clients (execd hosts) all the nodes -->
 
-	<edge from="compute">
+	<edge from="client" cond="sge">
 		<to>sge-client</to>
+		<to>sge-base</to>
 	</edge>
 
 	<edge from="server">
 		<to>sge-server</to>
+		<to>sge-base</to>
 	</edge>
 
 	<edge from="sge-server">
@@ -62,6 +67,11 @@
 		<to arch="x86_64,ia64">sge-globus-gcc64</to>
 	</edge>
 
+	<edge from="ganglia-server">
+		<to>sge-ganglia</to>
+	</edge>
+
+
 	<order head="sge-server">
 		<tail>grid-server</tail>
 	</order>
@@ -70,15 +80,6 @@
 		<tail>sge-globus-i386</tail>
 		<tail>sge-globus-x86_64</tail>
 	</order>
-
-	<edge to="sge-base">
-		<from>sge-client</from>
-		<from>sge-server</from>
-	</edge>
-
-	<edge from="ganglia-server">
-		<to>sge-ganglia</to>
-	</edge>
 
 </graph>
 

@@ -10,6 +10,9 @@
 
 	<changelog>
 	$Log: sge-server.xml,v $
+	Revision 1.39  2008/12/19 22:12:18  mjk
+	added sge attribute for cond edges
+	
 	Revision 1.38  2008/11/30 19:32:48  anoop
 	Added support for SGE on Solaris
 	
@@ -286,6 +289,8 @@ done
 logger -p local0.alert "Rebooting via SGE at `date`"
 /sbin/init 6
 </file>
+
+/opt/rocks/bin/rocks set appliance attr compute sge True
 
 </post>
 
