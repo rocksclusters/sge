@@ -11,6 +11,9 @@
 
 	<changelog>
 	$Log: sge.xml,v $
+	Revision 1.21  2008/12/23 00:29:23  mjk
+	order server node after database is up
+	
 	Revision 1.20  2008/12/19 22:12:18  mjk
 	added sge attribute for cond edges
 	
@@ -80,6 +83,8 @@
 		<tail>sge-globus-i386</tail>
 		<tail>sge-globus-x86_64</tail>
 	</order>
+
+	<order head="database-security" tail="sge-server"/>
 
 </graph>
 
