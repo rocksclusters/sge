@@ -1,6 +1,6 @@
 <?xml version="1.0" standalone="no"?>
 
-<kickstart>
+<kickstart interface="public">
 
 	<description>
 
@@ -10,6 +10,12 @@
 
 	<changelog>
 	$Log: sge-client.xml,v $
+	Revision 1.17  2008/12/23 02:40:15  mjk
+	- killed itanium conditionals
+	- killed edges from grid roll
+	- made some nodes "public"
+	- client -> base and server -> base (simpler dot graph)
+	
 	Revision 1.16  2008/11/30 19:32:48  anoop
 	Added support for SGE on Solaris
 	

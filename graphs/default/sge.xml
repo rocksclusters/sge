@@ -11,6 +11,12 @@
 
 	<changelog>
 	$Log: sge.xml,v $
+	Revision 1.22  2008/12/23 02:40:14  mjk
+	- killed itanium conditionals
+	- killed edges from grid roll
+	- made some nodes "public"
+	- client -> base and server -> base (simpler dot graph)
+	
 	Revision 1.21  2008/12/23 00:29:23  mjk
 	order server node after database is up
 	
@@ -52,37 +58,26 @@
 
 	<edge from="client" cond="sge">
 		<to>sge-client</to>
-		<to>sge-base</to>
 	</edge>
 
 	<edge from="server">
 		<to>sge-server</to>
-		<to>sge-base</to>
 	</edge>
 
 	<edge from="sge-server">
+		<to>sge-base</to>
 		<to arch="i386">sge-globus-gcc32</to>
-		<to arch="x86_64,ia64">sge-globus-gcc64</to>
+		<to arch="x86_64">sge-globus-gcc64</to>
 	</edge>
 
-	<edge from="grid-server">
-		<to arch="i386">sge-globus-gcc32</to>
-		<to arch="x86_64,ia64">sge-globus-gcc64</to>
+	<edge from="sge-client">
+		<to>sge-base</to>
 	</edge>
 
 	<edge from="ganglia-server">
 		<to>sge-ganglia</to>
 	</edge>
 
-
-	<order head="sge-server">
-		<tail>grid-server</tail>
-	</order>
-
-	<order head="grid-server">
-		<tail>sge-globus-i386</tail>
-		<tail>sge-globus-x86_64</tail>
-	</order>
 
 	<order head="database-security" tail="sge-server"/>
 

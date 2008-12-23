@@ -1,6 +1,6 @@
 <?xml version="1.0" standalone="no"?>
 
-<kickstart>
+<kickstart interface="public">
 
 	<description>
 
@@ -10,6 +10,12 @@
 
 	<changelog>
 	$Log: sge-base.xml,v $
+	Revision 1.14  2008/12/23 02:40:15  mjk
+	- killed itanium conditionals
+	- killed edges from grid roll
+	- made some nodes "public"
+	- client -> base and server -> base (simpler dot graph)
+	
 	Revision 1.13  2008/04/21 16:59:49  bruno
 	x11 deprecated packages no longer exist in RHEL 5
 	
