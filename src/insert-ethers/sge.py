@@ -55,6 +55,9 @@
 # @Copyright@
 #
 # $Log: sge.py,v $
+# Revision 1.21  2009/03/06 22:42:11  bruno
+# add and use the command: rocks report sge machines
+#
 # Revision 1.20  2008/10/18 00:56:14  mjk
 # copyright 5.1
 #
@@ -181,9 +184,6 @@ class Plugin(rocks.sql.InsertEthersPlugin):
 				'--norestart' in self.app.caller_args:
 			return
 
-		machines = \
-			commands.getstatusoutput('dbreport machines')[1].split()
-
 		#
 		# get a list of the current admin hosts
 		#
@@ -192,7 +192,15 @@ class Plugin(rocks.sql.InsertEthersPlugin):
 		for line in os.popen(cmd).readlines():
 			adminhosts.append(line.strip())
 
-		for machine in machines:
+		#
+		# get a list of machines under SGE control
+		#
+		cmd = '/opt/rocks/bin/rocks report sge machines'
+		r, w = popen2.popen2(cmd)
+
+		for m in r.readlines():
+			machine = m.strip()
+
 			if machine not in adminhosts:
 				self.added(machine, 0)
 
