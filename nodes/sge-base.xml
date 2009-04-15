@@ -10,6 +10,10 @@
 
 	<changelog>
 	$Log: sge-base.xml,v $
+	Revision 1.15  2009/04/15 20:59:44  anoop
+	Moved packages and config from solaris xml file to
+	common xml file
+	
 	Revision 1.14  2008/12/23 02:40:15  mjk
 	- killed itanium conditionals
 	- killed edges from grid roll
@@ -82,23 +86,24 @@
 
 	</changelog>
 
-	<package>openmotif</package>
-	<package>sge</package>
-	<package>rocks-sge</package>
-	<package>sge-drmaa</package>
+	<package os="linux">openmotif</package>
+	<package os="linux">sge</package>
+	<package os="linux">rocks-sge</package>
+	<package os="linux">sge-drmaa</package>
 
-<post arch="ia64">
-(cd /lib ; ln -s libc.so.6.1 libc.so.6)
-</post>
-
+	<package os="sunos">SUNWmfrun</package>
+	<package os="sunos">ROCKSge</package>
+	<package os="sunos">ROCKSrocks-sge</package>
 
 <post>
 SGE_UID=400
+SGE_GID=400
 
-/usr/sbin/useradd -c "GridEngine" -u $SGE_UID \
-	-s /sbin/nologin -r -d /opt/gridengine sge 2> /dev/null
+/usr/sbin/groupadd -g $SGE_GID sge
+
+/usr/sbin/useradd -c "GridEngine" -u $SGE_UID -g sge \
+	-s /bin/true -d /opt/gridengine sge 2> /dev/null
 </post>
-
 
 <post>
 
@@ -115,6 +120,9 @@ MANPATH /opt/gridengine/man
 </file>
 </post>
 
+<post os="sunos">
+crle -64 -u -l /opt/gridengine/lib/sol-amd64
+crle -u -l /opt/gridengine/lib/sol-x86
+</post>
 
 </kickstart> 
-
