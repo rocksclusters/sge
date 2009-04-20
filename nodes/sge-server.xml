@@ -10,6 +10,9 @@
 
 	<changelog>
 	$Log: sge-server.xml,v $
+	Revision 1.42  2009/04/20 21:16:35  bruno
+	cleanup dead 'homepage' links
+	
 	Revision 1.41  2008/12/23 02:40:15  mjk
 	- killed itanium conditionals
 	- killed edges from grid roll
@@ -135,16 +138,6 @@
 	<package>javacc</package>
 	<package>libXp-devel</package>
 	<package>junit</package>
-
-<post>
-
-<file name="/var/www/html/homepage/24-queue.html">
-&lt;a href="ganglia/addons/rocks/queue.php"&gt;
-SGE Job Queue&lt;/a&gt;
-</file>
-
-</post>
-
 
 <post>
 
