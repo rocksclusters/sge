@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.36 2008/11/30 19:32:48 anoop Exp $
+# $Id: Makefile,v 1.37 2009/04/21 23:43:55 bruno Exp $
 #
 # @Copyright@
 # 
@@ -55,6 +55,9 @@
 # @Copyright@
 #
 # $Log: Makefile,v $
+# Revision 1.37  2009/04/21 23:43:55  bruno
+# refresh bits
+#
 # Revision 1.36  2008/11/30 19:32:48  anoop
 # Added support for SGE on Solaris
 #
@@ -145,11 +148,11 @@ build:	prep patch
 	( cd gridengine/source ; \
 		cp ../../aimk.private . ; \
 		cp ../../build.properties . ; \
-		./aimk -only-depend ; \
+		./aimk -only-depend -no-dump ; \
 		scripts/zerodepend ; \
-		./aimk depend ; \
-		./aimk ;\
-		./aimk -man ; \
+		./aimk -no-dump depend ; \
+		./aimk -no-dump ;\
+		./aimk -no-dump -man ; \
 	)
 
 prep:
