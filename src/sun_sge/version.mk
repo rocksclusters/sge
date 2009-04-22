@@ -1,4 +1,3 @@
 NAME	=	ge
-VERSION	=	6.1
-RELEASE	=	u5
-TARBALL	=	ge-6.1u5-bin-sol
+VERSION	=	6.2
+RELEASE	=	u2_1

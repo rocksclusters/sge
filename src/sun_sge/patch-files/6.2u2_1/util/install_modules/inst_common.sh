@@ -52,8 +52,8 @@ BasicSettings()
 
   # library path setting required only for architectures where RUNPATH is not supported
   case $SGE_ARCH in
-#ENFORCE_SHLIBPATH#sol*|lx*)
-#ENFORCE_SHLIBPATH#  ;;
+sol*|lx*)
+  ;;
   *)
     shlib_path_name=`util/arch -lib`
     old_value=`eval echo '$'$shlib_path_name`
@@ -73,7 +73,6 @@ BasicSettings()
 
   SGE_MASTER_NAME=sge_qmaster
   SGE_EXECD_NAME=sge_execd
-  SGE_SCHEDD_NAME=sge_schedd
   SGE_SHEPHERD_NAME=sge_shepherd
   SGE_SHADOWD_NAME=sge_shadowd
   SGE_SERVICE=sge_qmaster
@@ -87,13 +86,13 @@ BasicSettings()
       u*)
          $ECHO "Failed: $SGE_ARCH platform is not supported."
          $ECHO "Exiting installation."
-         exit 1
+         exit 2
          ;;   
       *)
          $ECHO "Can't find binaries for architecture: $SGE_ARCH!"
          $ECHO "Please check your binaries. Installation failed!"
          $ECHO "Exiting installation."
-         exit 1
+         exit 2
       esac
    fi
 
@@ -103,26 +102,27 @@ BasicSettings()
       if [ ! -f $SPOOLDEFAULTS ]; then
          $ECHO "can't find \"$SPOOLDEFAULTS\""
          $ECHO "Installation failed."
-         exit 1
+         exit 2
       fi
 
       SPOOLINIT=$SGE_UTILBIN/spoolinit
       if [ ! -f $SPOOLINIT ]; then
          $ECHO "can't find \"$SPOOLINIT\""
          $ECHO "Installation failed."
-         exit 1
+         exit 2
       fi
    fi
 
   HOST=`$SGE_UTILBIN/gethostname -name`
   if [ "$HOST" = "" ]; then
-     $INFOTEXT -e "can't get hostname of this machine. Installation failed."
-     exit 1
+     echo "can't get hostname of this machine. Installation failed."
+     exit 2
   fi
 
   RM="rm -f"
   TOUCH="touch"
   MORE_CMD="more"
+  CHMOD="chmod"
 
 }
 
@@ -148,7 +148,7 @@ INFOTEXT=$INFOTXT_DUMMY
 if [ ! -f $INFOTXT_DUMMY ]; then
    $ECHO "can't find \"$INFOTXT_DUMMY\""
    $ECHO "Installation failed."
-   exit 1
+   exit 2
 fi
 }
 
@@ -174,24 +174,66 @@ Enter()
 
 #-------------------------------------------------------------------------
 # Makedir: make directory, chown/chgrp/chmod it. Exit if failure
-#
+# 
 Makedir()
 {
    dir=$1
+   tmp_dir=$1
 
    if [ ! -d $dir ]; then
-      $INFOTEXT "creating directory: %s" "$dir"
-      ExecuteAsAdmin $MKDIR -p $dir
+      while [ ! -d $tmp_dir ]; do
+         chown_dir=$tmp_dir
+         tmp_dir2=`dirname $tmp_dir`
+         tmp_dir=$tmp_dir2
+      done
+
+       $INFOTEXT "creating directory: %s" "$dir"
+       if [ "`$SGE_UTILBIN/filestat -owner $tmp_dir 2> /dev/null`" != "$ADMINUSER" ]; then
+          Execute $MKDIR -p $dir
+          if [ "$ADMINUSER" = "default" ]; then
+             Execute $CHOWN -R root $chown_dir
+          else
+		       group=`$SGE_UTILBIN/checkuser -gid $ADMINUSER`
+             Execute $CHOWN -R $ADMINUSER:$group $chown_dir
+          fi
+	       Execute $CHMOD -R $DIRPERM $chown_dir
+       else
+          ExecuteAsAdmin $MKDIR -p $dir
+		    ExecuteAsAdmin $CHMOD -R $DIRPERM $chown_dir
+       fi
    fi
 
-   ExecuteAsAdmin $CHMOD $DIRPERM $dir
+	if [ "`$SGE_UTILBIN/filestat -owner $dir`" != "$ADMINUSER" ]; then
+	    Execute $CHMOD $DIRPERM $dir
+	else
+       ExecuteAsAdmin $CHMOD $DIRPERM $dir
+	fi
 }
+
+#-------------------------------------------------------------------------
+# Removedir: remove directory, chown/chgrp/chmod it. Exit if failure
+# 
+Removedir()
+{
+   dir=$1
+   tmp_dir=`dirname $dir`
+
+   if [ -d $dir ]; then
+       #We could be more clever and even check tmp_dir permissions
+       if [ "`$SGE_UTILBIN/filestat -owner $tmp_dir`" != "$ADMINUSER" ]; then
+          Execute $RM -rf $dir
+       else
+          ExecuteAsAdmin $RM -rf $dir
+       fi
+   fi
+}
+
 
 #-------------------------------------------------------------------------
 # Execute command as user $ADMINUSER and exit if exit status != 0
 # if ADMINUSER = default then execute command unchanged
 #
-# uses binary "adminrun" form SGE distribution
+# uses binary "adminrun" from SGE distribution
 #
 # USES: variables "$verbose"    (if set to "true" print arguments)
 #                  $ADMINUSER   (if set to "default" do not use "adminrun)
@@ -226,7 +268,9 @@ ExecuteAsAdmin()
       $INFOTEXT -log "Probably a permission problem. Please check file access permissions."
       $INFOTEXT -log "Check read/write permission. Check if SGE daemons are running."
 
-      MoveLog
+      if [ "$insideMoveLog" != true ]; then #To prevent endless recursion when failure occures in the MoveLog due to perm problems when moving the log file   
+         MoveLog
+      fi
       if [ "$ADMINRUN_NO_EXIT" != "true" ]; then
          exit 1
       fi
@@ -328,7 +372,7 @@ CheckBinaries()
 
    BINFILES="sge_coshepherd \
              sge_execd sge_qmaster  \
-             sge_schedd sge_shadowd \
+             sge_shadowd \
              sge_shepherd qacct qalter qconf qdel qhold \
              qhost qlogin qmake qmod qmon qresub qrls qrsh qselect qsh \
              qstat qsub qtcsh qping qquota sgepasswd"
@@ -409,9 +453,9 @@ CheckBinaries()
          "qalter          qmake           qselect         sge_coshepherd\n" \
          "qconf           qmod            qsh             sge_execd\n" \
          "qdel            qmon            qstat           sge_qmaster\n" \
-         "qhold           qresub          qsub            sge_schedd\n" \
-         "qhost           qrls            qtcsh           sge_shadowd\n" \
-         "qping           qquota\n\n" \
+         "qhold           qresub          qsub            qhost\n" \
+         "qrls            qtcsh           sge_shadowd     qping\n" \
+         "qquota\n\n" \
          "and the binaries in >%s< should be:\n\n" \
          "adminrun       gethostbyaddr  loadcheck      rlogin         uidgid\n" \
          "authuser       checkprog      gethostbyname  now            rsh\n" \
@@ -426,9 +470,9 @@ CheckBinaries()
       "qalter          qmake           qselect         sge_coshepherd\n" \
       "qconf           qmod            qsh             sge_execd\n" \
       "qdel            qmon            qstat           sge_qmaster\n" \
-      "qhold           qresub          qsub            sge_schedd\n" \
-      "qhost           qrls            qtcsh           sge_shadowd\n" \
-      "qping           qquota\n\n" \
+      "qhold           qresub          qsub            qhost\n" \
+      "qrls            qtcsh           sge_shadowd     qping\n" \
+      "qquota\n\n" \
       "and the binaries in >%s< should be:\n\n" \
       "adminrun       gethostbyaddr  loadcheck      rlogin         uidgid\n" \
       "authuser       checkprog      gethostbyname  now            rsh\n" \
@@ -437,7 +481,7 @@ CheckBinaries()
       "Installation failed. Exit.\n" $SGE_BIN $SGE_UTILBIN
 
       MoveLog
-      exit 2 
+      exit 2 # ToDo: documentation, do not change, exit code used for hedeby
    fi
 }
 
@@ -449,10 +493,11 @@ ErrUsage()
 {
    myname=`basename $0`
    $INFOTEXT -e \
-             "Usage: %s -m|-um|-x|-ux [all]|-rccreate|-sm|-usm|-s|-db|-udb|\\\n" \
-             "       -upd|-bup|-rst|-copycerts <host|hostlist>|-v \\\n" \
-             "       [-auto <filename>] | [-winupdate] [-csp] [-resport] [-afs] \\\n" \
-             "       [-host <hostname>] [-rsh] [-noremote]\n" \
+             "Usage: %s -m|-um|-x|-ux [all]|-sm|-usm|-s|-db|-udb|-bup|-rst| \n" \
+             "       -copycerts <host|hostlist>|-v|-upd|-upd-execd|-upd-rc|-upd-win| \n" \
+             "       -post_upd|-start-all|-rccreate|[-host <hostname>] [-resport] [-rsh] \n" \
+             "       [-auto <filename>] [-nr] [-winupdate] [-winsvc] [-uwinsvc] [-csp] \n" \
+             "       [-jmx] [-oldijs] [-afs] [-noremote] [-nosmf]\n" \
              "   -m         install qmaster host\n" \
              "   -um        uninstall qmaster host\n" \
              "   -x         install execution host\n" \
@@ -466,7 +511,13 @@ ErrUsage()
              "   -rst       restore configuration from backup\n" \
              "   -copycerts copy local certificates to given hosts\n" \
              "   -v         print version\n" \
-             "   -upd       upgrade cluster from 6.0u2 or higher to 6.1\n" \
+             "   -upd       upgrade cluster from 6.0 or higher to 6.2\n" \
+             "   -upd-execd delete/initialize all execd spool directories\n" \
+             "   -upd-rc    create new autostart scripts for the whole cluster\n" \
+             "   -upd-win   update/install windows helper service on all Windows hosts\n" \
+             "   -post_upd  finish the upgrade procedure (initialize execd spool directories,\n" \
+             "              create autostart scripts and update windows helper service)\n" \
+             "   -start-all start whole cluster\n" \
              "   -rccreate  create startup scripts from templates\n" \
              "   -host      hostname for shadow master installation or uninstallation \n" \
              "              (eg. exec host)\n" \
@@ -474,11 +525,17 @@ ErrUsage()
              "              higher than 1024\n" \
              "   -rsh       use rsh instead of ssh (default is ssh)\n" \
              "   -auto      full automatic installation (qmaster and exec hosts)\n" \
+             "   -nr        set reschedule to false\n" \
              "   -winupdate update to add gui features to a existing execd installation\n" \
+             "   -winsvc    install windows helper service\n" \
+             "   -uwinsvc   uninstall windows helper service\n" \
              "   -csp       install system with security framework protocol\n" \
              "              functionality\n" \
+             "   -jmx       install qmaster with JMX server thread enabled\n" \
+             "   -oldijs    configure old interactive job support\n" \
              "   -afs       install system with AFS functionality\n" \
              "   -noremote  supress remote installation during autoinstall\n" \
+             "   -nosmf     disable SMF for Solaris 10+ machines (RC scripts are used)\n" \
              "   -help      show this help text\n\n" \
              "   Examples:\n" \
              "   inst_sge -m -x\n" \
@@ -510,6 +567,9 @@ ErrUsage()
 #
 GetConfigFromFile()
 {
+  SGE_ENABLE_SMF_LAST=$SGE_ENABLE_SMF
+  SGE_ENABLE_SMF=""
+
   IFS="
 "
   if [ $FILE != "undef" ]; then
@@ -520,6 +580,105 @@ GetConfigFromFile()
   fi
   IFS="   
 "
+   #-nosmf takes precedence over the value in the autoinstall template
+   if [ "$SGE_ENABLE_SMF_LAST" = false ]; then
+      SGE_ENABLE_SMF=false
+   fi
+}
+#--------------------------------------------------------------------------
+# Parameter $1: String which might be a Ip adress
+# Return: 0 if not, 1 if yes
+# echo: parsed IP address
+IsIpAddress()
+{
+   IP=$1
+   isIp=""
+   ipFound=""
+   if [ "$IP" != "" ]; then
+      # split text into 4 strings on the "." and
+      # check that the value is an integer >= 0
+      # and lower than 256
+      for nr in 1 2 3 4; do
+         value=`echo $IP | cut -d"." -f$nr`
+         isNotDigit=`echo $value | grep "[^0-9]"`
+         if [ "$isNotDigit" = "" -a "$value" != "" ]; then
+            if [ "$value" -ge 0 -a "$value" -lt 256 ]; then
+               isIp="${isIp}1"
+               if [ "$ipFound" != "" ]; then 
+                  ipFound="${ipFound}."
+               fi
+               ipFound="${ipFound}$value"
+            fi
+         fi
+      done
+   fi
+
+   # If we found 4 numbers  0 =< nr < 256
+   # between 4 points. This must be an ip address
+   if [ "$isIp" = "1111" ]; then
+      echo ${ipFound}
+      return 1
+   fi
+   echo ""
+   return 0
+}
+
+#--------------------------------------------------------------------------
+# Get IP address list of a host
+# Parameters $1 , hostname
+# return: number of found ip adresses
+# echo: list of ip addresses
+GetIpAddressOfHost()
+{
+   # call gethostbyname and remove the first column splitted on
+   # the ":". Also ignore lines which don't have a "."
+   LIST=`$SGE_UTILBIN/gethostbyname $1 | cut -d":" -f 2 | grep "\."`
+   IpList=""
+   IpCount=0
+   for line in $LIST; do
+      isIp=`IsIpAddress $line `
+      if [ $? -eq 1 ]; then
+         IpList="${IpList} $isIp"
+         IpCount=`expr $IpCount + 1`
+      fi
+   done
+
+   # Return the number of found ip adresses
+   # output the ip adress list
+   echo $IpList
+   return $IpCount
+}
+
+
+
+
+#--------------------------------------------------------------------------
+# Resolve a single host
+#
+ResolveSingleHost()
+{
+   UNRESOLVED=$1
+   RESOLVED=""
+   ResolveSingleHostResult=""
+   # It is better to resolve the host by finding out its
+   # ip address. If the host matches to exaclty one ip address
+   # we use the ip address to resolve the host local.
+   # By doing it this way we eliminate problems with long
+   # and short hostname resolving.
+   if [ "$UNRESOLVED" != "" ]; then
+      HOSTIP=`GetIpAddressOfHost $UNRESOLVED`
+      if [ $? -eq 1  ]; then
+         # We have only 1 ip address, resolve by IP
+         RESOLVED=`$SGE_UTILBIN/gethostbyaddr -name $HOSTIP`
+      else
+         # Resolve by name
+         RESOLVED=`$SGE_UTILBIN/gethostbyname -name $UNRESOLVED`
+      fi
+   fi
+
+   # Save the resolve result in RESOLVED_CHANGED_HOSTNAMES
+   AddChangedHost ${UNRESOLVED} ${RESOLVED}
+   ResolveSingleHostResult=$RESOLVED
 }
 
 #--------------------------------------------------------------------------
@@ -528,6 +687,7 @@ GetConfigFromFile()
 ResolveHosts()
 {
    HOSTS=""
+   ResolveHostsResult=""
    if [ $# -ge 1 ]; then
       for host in $*; do
          if [ "$host" = "none" ]; then
@@ -535,14 +695,16 @@ ResolveHosts()
          else
             if [ -f $host ]; then
                for fhost in `cat $host`; do
-                  HOSTS="$HOSTS `$SGE_UTILBIN/gethostbyname -name $fhost`"
+                  ResolveSingleHost $fhost
+                  HOSTS="$HOSTS $ResolveSingleHostResult"
                done
             fi
-            HOSTS="$HOSTS `$SGE_UTILBIN/gethostbyname -name $host`" 
+            ResolveSingleHost $host
+            HOSTS="$HOSTS $ResolveSingleHostResult" 
          fi
       done
    fi
-   echo $HOSTS
+   ResolveHostsResult=$HOSTS
 }
 
 #--------------------------------------------------------------------------
@@ -556,13 +718,48 @@ CheckRSHConnection()
    return $?
 }
 
+
+#--------------------------------------------------------------------------
+# Log result of hostname resolvings into log file
+LogResolvedHostLists()
+{
+   if [ "$AUTO" = "true" ]; then
+      if [ "$RESOLVED_CHANGED_HOSTNAMES" != "" ]; then
+         $INFOTEXT -log "Local hostname resolving results:"
+      fi
+      for resolve_text in $RESOLVED_CHANGED_HOSTNAMES; do
+         unresolvedHostname=`echo $resolve_text | cut -d# -f1`
+         resolvedHostname=`echo $resolve_text | cut -d# -f2`
+         $INFOTEXT -log "   Resolved host \"$unresolvedHostname\" to \"$resolvedHostname\""
+      done
+   fi
+}
+
+#--------------------------------------------------------------------------
+# Save the result of the resolving in a global list. The resolve result
+# can later be logged by LogResolvedHostLists()
+# 
+# $1 unresolved host name
+# $2 resolved host name
+AddChangedHost()
+{
+   UNRESOLVED=$1
+   RESOLVED=$2
+   if [ "$UNRESOLVED" != "$RESOLVED" ]; then
+      if [ "$RESOLVED_CHANGED_HOSTNAMES" != "" ]; then
+         RESOLVED_CHANGED_HOSTNAMES="${RESOLVED_CHANGED_HOSTNAMES} "
+      fi 
+      RESOLVED_CHANGED_HOSTNAMES="${RESOLVED_CHANGED_HOSTNAMES}${UNRESOLVED}#${RESOLVED}"
+   fi
+}
+
 #--------------------------------------------------------------------------
 # Checking the configuration file, if valid (autoinstall mode)
 #
 CheckConfigFile()
 {
    CONFIG_FILE=$1
-   KNOWN_CONFIG_FILE_ENTRIES_INSTALL="SGE_ROOT SGE_QMASTER_PORT SGE_EXECD_PORT CELL_NAME ADMIN_USER QMASTER_SPOOL_DIR EXECD_SPOOL_DIR GID_RANGE SPOOLING_METHOD DB_SPOOLING_SERVER DB_SPOOLING_DIR PAR_EXECD_INST_COUNT ADMIN_HOST_LIST SUBMIT_HOST_LIST EXEC_HOST_LIST EXECD_SPOOL_DIR_LOCAL HOSTNAME_RESOLVING SHELL_NAME COPY_COMMAND DEFAULT_DOMAIN ADMIN_MAIL ADD_TO_RC SET_FILE_PERMS RESCHEDULE_JOBS SCHEDD_CONF SHADOW_HOST EXEC_HOST_LIST_RM REMOVE_RC WINDOWS_SUPPORT WIN_ADMIN_NAME WIN_DOMAIN_ACCESS CSP_RECREATE CSP_COPY_CERTS CSP_COUNTRY_CODE CSP_STATE CSP_LOCATION CSP_ORGA CSP_ORGA_UNIT CSP_MAIL_ADDRESS"
+   KNOWN_CONFIG_FILE_ENTRIES_INSTALL="SGE_ROOT SGE_QMASTER_PORT SGE_EXECD_PORT CELL_NAME ADMIN_USER QMASTER_SPOOL_DIR EXECD_SPOOL_DIR GID_RANGE SPOOLING_METHOD DB_SPOOLING_SERVER DB_SPOOLING_DIR PAR_EXECD_INST_COUNT ADMIN_HOST_LIST SUBMIT_HOST_LIST EXEC_HOST_LIST EXECD_SPOOL_DIR_LOCAL HOSTNAME_RESOLVING SHELL_NAME COPY_COMMAND DEFAULT_DOMAIN ADMIN_MAIL ADD_TO_RC SET_FILE_PERMS RESCHEDULE_JOBS SCHEDD_CONF SHADOW_HOST EXEC_HOST_LIST_RM REMOVE_RC WINDOWS_SUPPORT WIN_ADMIN_NAME WIN_DOMAIN_ACCESS CSP_RECREATE CSP_COPY_CERTS CSP_COUNTRY_CODE CSP_STATE CSP_LOCATION CSP_ORGA CSP_ORGA_UNIT CSP_MAIL_ADDRESS SERVICE_TAGS SGE_ENABLE_SMF SGE_CLUSTER_NAME SGE_ENABLE_JMX SGE_JMX_PORT SGE_JVM_LIB_PATH SGE_ADDITIONAL_JVM_ARGS SGE_JMX_SSL SGE_JMX_SSL_CLIENT SGE_JMX_SSL_KEYSTORE SGE_JMX_SSL_KEYSTORE_PW"
    KNOWN_CONFIG_FILE_ENTRIES_BACKUP="SGE_ROOT SGE_CELL BACKUP_DIR TAR BACKUP_FILE"
    MAX_GID=2147483647 #unsigned int = 32bit - 1
    MIN_GID=100        #from 0 - 100 may be reserved GIDs
@@ -629,13 +826,24 @@ CheckConfigFile()
    #do hostname resolving. fetching hostname from config file, try to resolve and
    #and recreate the hostname lists
    if [ "$DB_SPOOLING_SERVER" != "none" ]; then
-      DB_SPOOLING_SERVER=`ResolveHosts $DB_SPOOLING_SERVER`
+      ResolveHosts $DB_SPOOLING_SERVER
+      DB_SPOOLING_SERVER=$ResolveHostsResult
    fi
-   ADMIN_HOST_LIST=`ResolveHosts $ADMIN_HOST_LIST`
-   SUBMIT_HOST_LIST=`ResolveHosts $SUBMIT_HOST_LIST`
-   EXEC_HOST_LIST=`ResolveHosts $EXEC_HOST_LIST`
-   SHADOW_HOST=`ResolveHosts $SHADOW_HOST`
-   EXEC_HOST_LIST_RM=`ResolveHosts $EXEC_HOST_LIST_RM`
+
+   ResolveHosts $ADMIN_HOST_LIST
+   ADMIN_HOST_LIST=$ResolveHostsResult
+
+   ResolveHosts $SUBMIT_HOST_LIST
+   SUBMIT_HOST_LIST=$ResolveHostsResult
+
+   ResolveHosts $EXEC_HOST_LIST
+   EXEC_HOST_LIST=$ResolveHostsResult
+
+   ResolveHosts $SHADOW_HOST
+   SHADOW_HOST=$ResolveHostsResult
+
+   ResolveHosts $EXEC_HOST_LIST_RM
+   EXEC_HOST_LIST_RM=$ResolveHostsResult
 
    if [ "$QMASTER" = "install" -o "$EXECD" = "install" -o "$QMASTER" = "uninstall" -o "$EXECD" = "uninstall" ]; then
       for e in $CONFIG_ENTRIES; do
@@ -660,7 +868,9 @@ CheckConfigFile()
    fi 
 
    if [ "$QMASTER" = "install" ]; then
-      if [ -d "$SGE_ROOT/$SGE_CELL" -a ! -z "$DB_SPOOLING_SERVER" -a "$DB_SPOOLING_SERVER" != "none" ]; then
+      # if we have a bdb server, the cell directory already exists - this is OK.
+      # if we have no bdb server, and the cell directory exists, stop the installation.
+      if [ -d "$SGE_ROOT/$SGE_CELL" -a \( -z "$DB_SPOOLING_SERVER" -o "$DB_SPOOLING_SERVER" = "none" \) ]; then
          $INFOTEXT -e "Your >CELL_NAME< directory %s already exist!" $SGE_ROOT/$SGE_CELL
          $INFOTEXT -e "The automatic installation stops, if the >SGE_CELL< directory already exists"
          $INFOTEXT -e "to ensure, that existing installations are not overwritten!"
@@ -713,6 +923,11 @@ CheckConfigFile()
          $INFOTEXT -e "Your >PAR_EXECD_INST_COUNT< entry is invalid, please enter a number between 1\n and number of execution host"
          is_valid="false"
       fi 
+      `IsValidClusterName "$SGE_CLUSTER_NAME"`
+      if [ "$?" -eq 1 ]; then
+         $INFOTEXT -e "Your >SGE_CLUSTER_NAME< entry is invalid. Valid Clustername is e.g. p_1234"
+         is_valid="false"
+      fi
 
       low_gid=`echo $GID_RANGE | cut -d"-" -f1`
       high_gid=`echo $GID_RANGE | cut -d"-" -f2`
@@ -728,6 +943,20 @@ CheckConfigFile()
          $INFOTEXT -e "Your >EXECD_SPOOL_DIR_LOCAL< entry is not a path. It must be a valid path or empty!"
          is_valid="false"
       fi
+      if [ -z "$SERVICE_TAGS" ]; then
+         $INFOTEXT -e "Your >SERVICE_TAGS< flag is not set!"
+         is_valid="false"
+      fi
+      if [ "$SERVICE_TAGS" = "1" -o "$SERVICE_TAGS" = "true" -o "$SERVICE_TAGS" = "TRUE" ]; then
+         SERVICE_TAGS="enable"
+      elif [ "$SERVICE_TAGS" = "0" -o "$SERVICE_TAGS" = "false" -o "$SERVICE_TAGS" = "false" ]; then
+         SERVICE_TAGS="disable"
+      fi
+      SERVICE_TAGS=`echo "$SERVICE_TAGS" | tr [A-Z] [a-z]`
+      if [ "$SERVICE_TAGS" != "enable" -a "$SERVICE_TAGS" != "disable" ]; then
+         $INFOTEXT -e "Your >SERVICE_TAGS< flag is wrong! Valid values are:enable,disable,0,1,true,false,TRUE,FALSE"
+         is_valid="false" 
+      fi
       if [ -z "$HOSTNAME_RESOLVING" ]; then
          $INFOTEXT -e "Your >HOSTNAME_RESOLVING< flag is not set!"
          is_valid="false" 
@@ -740,7 +969,64 @@ CheckConfigFile()
       HOSTNAME_RESOLVING=`echo "$HOSTNAME_RESOLVING" | tr [A-Z] [a-z]`
       if [ "$HOSTNAME_RESOLVING" != "true" -a "$HOSTNAME_RESOLVING" != "false" ]; then
          $INFOTEXT -e "Your >HOSTNAME_RESOLVING< flag is wrong! Valid values are: 0, 1, true, false"
+         is_valid="false"
+      fi
+
+      if [ -z "$SGE_ENABLE_JMX" ]; then
+         $INFOTEXT -e "Your >SGE_ENABLE_JMX< flag is not set!"
+         is_valid="false"
+      fi
+      if [ "$SGE_ENABLE_JMX" = "1" ]; then
+         SGE_ENABLE_JMX="true"
+      elif [ "$SGE_ENABLE_JMX" = "0" ]; then
+         SGE_ENABLE_JMX="false"
+      fi
+      SGE_ENABLE_JMX=`echo "$SGE_ENABLE_JMX" | tr [A-Z] [a-z]`
+      if [ "$SGE_ENABLE_JMX" != "true" -a "$SGE_ENABLE_JMX" != "false" ]; then
+         $INFOTEXT -e "Your >SGE_ENABLE_JMX< flag is wrong! Valid values are:0,1,true,false,TRUE,FALSE"
          is_valid="false" 
+      fi   
+      if [ "$SGE_ENABLE_JMX" = "true" -a \( -z "$SGE_JVM_LIB_PATH" -o  "`echo "$SGE_JVM_LIB_PATH" | cut -d"/" -f1`" = "`echo "$SGE_JVM_LIB_PATH" | cut -d"/" -f2`" \) ]; then
+         $INFOTEXT -e "Your >SGE_JVM_LIB_PATH< is empty or an invalid path. It must be a full path!"
+         is_valid="false"
+      fi   
+      if [ "$SGE_ENABLE_JMX" = "true" ]; then
+         `IsNumeric "$SGE_JMX_PORT"`
+         if [ "$?" -eq 1 ]; then
+            $INFOTEXT -e "Your >SGE_JMX_PORT< entry is invalid, please enter a number between 1\n and number of execution host"
+            is_valid="false"
+         elif [ "$SGE_JMX_PORT" -le 1 -a "$SGE_JMX_PORT" -ge 65536 ]; then
+            $INFOTEXT -e "Your >SGE_JMX_PORT< entry is invalid. It must be a number between 1 and 65536!"
+            is_valid="false"
+         fi
+         if [ -z "$SGE_JMX_SSL" ]; then
+            $INFOTEXT -e "Your >SGE_JMX_SSL< flag is not set!"
+            is_valid="false" 
+         fi 
+         if [ "$SGE_JMX_SSL" = "1" ]; then
+            SGE_JMX_SSL="true"
+         elif [ "$SGE_JMX_SSL" = "0" ]; then
+            SGE_JMX_SSL="false"
+         fi
+         SGE_JMX_SSL=`echo "$SGE_JMX_SSL" | tr [A-Z] [a-z]`
+         if [ "$SGE_JMX_SSL" != "true" -a "$SGE_JMX_SSL" != "false" ]; then
+            $INFOTEXT -e "Your >SGE_JMX_SSL< flag is wrong! Valid values are:0,1,true,false,TRUE,FALSE"
+            is_valid="false" 
+         fi   
+         if [ -z "$SGE_JMX_SSL_CLIENT" ]; then
+            $INFOTEXT -e "Your >SGE_JMX_SSL_CLIENT< flag is not set!"
+            is_valid="false" 
+         fi 
+         if [ "$SGE_JMX_SSL_CLIENT" = "1" ]; then
+            SGE_JMX_SSL_CLIENT="true"
+         elif [ "$SGE_JMX_SSL_CLIENT" = "0" ]; then
+            SGE_JMX_SSL_CLIENT="false"
+         fi
+         SGE_JMX_SSL_CLIENT=`echo "$SGE_JMX_SSL_CLIENT" | tr [A-Z] [a-z]`
+         if [ "$SGE_JMX_SSL_CLIENT" != "true" -a "$SGE_JMX_SSL_CLIENT" != "false" ]; then
+            $INFOTEXT -e "Your >SGE_JMX_SSL_CLIENT< flag is wrong! Valid values are:0,1,true,false,TRUE,FALSE"
+            is_valid="false" 
+         fi   
       fi
 
       if [ -z "$DEFAULT_DOMAIN" ]; then
@@ -811,6 +1097,22 @@ CheckConfigFile()
            $INFOTEXT -e "Your >SHELL_NAME< entry is wrong. Allowed values are >ssh<, >rsh< or >remsh<"
            is_valid="false"
       fi
+      if [ -z "$SGE_ENABLE_SMF" ]; then
+         $INFOTEXT -e "Your >SGE_ENABLE_SMF< flag is not set!"
+         is_valid="false" 
+      fi 
+      if [ "$SGE_ENABLE_SMF" = "1" ]; then
+         SGE_ENABLE_SMF="true"
+      elif [ "$SGE_ENABLE_SMF" = "0" ]; then
+         SGE_ENABLE_SMF="false"
+      fi
+      SGE_ENABLE_SMF=`echo $SGE_ENABLE_SMF | tr [A-Z] [a-z]`
+      if [ "$SGE_ENABLE_SMF" != "true" -a "$SGE_ENABLE_SMF" != "false" ]; then
+         $INFOTEXT -e "Your >SGE_ENABLE_SMF< flag is wrong! Valid values are: 0, 1, true, false"
+         is_valid="false" 
+      elif [ "$SGE_ENABLE_SMF" = "false" ]; then
+         SMF_FLAGS="-nosmf"
+      fi
    fi
 
    if [  "$EXECD" = "install" ]; then
@@ -834,7 +1136,14 @@ CheckConfigFile()
       REMOVE_RC=`echo $REMOVE_RC | tr [A-Z] [a-z]`
       if [ "$REMOVE_RC" != "true" -a "$REMOVE_RC" != "false" ]; then
          $INFOTEXT -e "Your >REMOVE_RC< flag is wrong! Valid values are: 0, 1, true, false"
-         is_valid="false" 
+         is_valid="false"
+      fi
+
+      if [ "$SGE_ENABLE_JMX" = "true" -a "$QMASTER" = "uninstall" ]; then
+         if [ -z "$JMX_PORT" -o -z "$SGE_JVM_LIB_PATH" ]; then
+            $INFOTEXT -e "The JMX_PORT or SGE_JVM_LIB_PATH has not been set in config file!\n"
+            is_valid="false"
+         fi
       fi
    fi
 
@@ -843,7 +1152,7 @@ CheckConfigFile()
          $INFOTEXT -e "Your >EXEC_HOST_LIST_RM< is empty!"
          $INFOTEXT -e "For a automatic execd unintallation you have to enter a valid exechost name!"
          is_valid="false"
-      fi      
+      fi
    fi
 
    if [ "$CSP" = "true" -o "$WINDOWS_SUPPORT" = "true" ]; then
@@ -869,10 +1178,6 @@ CheckConfigFile()
       fi
       if [ "$CSP_MAIL_ADDRESS" = "" ]; then
          $INFOTEXT -e "The>CSP_MAIL_ADDRESS< entry is empty!\n"
-         is_valid="false"
-      fi
-      if [ "$COPY_COMMAND" != "scp" -a "$COPY_COMMAND" != "rcp" ]; then
-         $INFOTEXT -e "Your >COPY_COMMAND< entry is invalid"
          is_valid="false"
       fi
       if [ -z "$CSP_RECREATE" ]; then
@@ -904,6 +1209,11 @@ CheckConfigFile()
          $INFOTEXT -e "Your >CSP_COPY_CERTS< flag is wrong! Valid values are:0, 1, true, false"
          is_valid="false" 
       fi
+      #COPY_COMMAND is checked only if CSP_COPY_CERTS=true
+      if [ "$CSP_COPY_CERTS" = true -a \( "$COPY_COMMAND" != "scp" -a "$COPY_COMMAND" != "rcp" \) ]; then
+         $INFOTEXT -e "Your >COPY_COMMAND< entry is invalid"
+         is_valid="false"
+      fi
    fi
 
    if [ "$is_valid" = "false" ]; then
@@ -934,24 +1244,6 @@ WelcomeTheUser()
    $CLEAR
 }
 
-#--------------------------------------------------------------------------
-#
-WelcomeTheUserUpgrade()
-{
-   $INFOTEXT -u "\nWelcome to the Grid Engine Upgrade"
-   $INFOTEXT "\nBefore you continue with the upgrade please read these hints:\n\n" \
-             "   - Your terminal window should have a size of at least\n" \
-             "     80x24 characters\n\n" \
-             "   - The INTR character is often bound to the key Ctrl-C.\n" \
-             "     The term >Ctrl-C< is used during the upgrade if you\n" \
-             "     have the possibility to abort the upgrade\n\n" \
-             "The upgrade procedure will take approximately 1-2 minutes.\n" \
-             "After this upgrade you will get a new set of settings and\n" \
-             "rc-startup script files. The old files will be stored in:\n" \
-             "$SGE_ROOT/$SGE_CELL/common directory"
-   $INFOTEXT -wait -auto $AUTO -n "Hit <RETURN> to continue >> "
-   $CLEAR
-}
 
 #--------------------------------------------------------------------------
 #
@@ -1184,7 +1476,7 @@ CheckForLocalHostResolving()
                 "physical or logical network interfaces of this machine.\n\n" \
                 "Installation failed.\n\n" \
                 "Press <RETURN> to exit the installation procedure >> "
-      exit
+      exit 2
    fi
 }
                
@@ -1273,7 +1565,440 @@ ProcessSGERoot()
    $CLEAR
 }
 
- 
+#-------------------------------------------------------------------------
+# GetClusterName: Sets the default cluster name
+#
+GetDefaultClusterName() {
+   if [ -z "$SGE_CLUSTER_NAME" ]; then
+      SGE_CLUSTER_NAME="p$SGE_QMASTER_PORT"
+   fi
+}
+
+#-------------------------------------------------------------------------
+# SetupRcScriptNames: Sets up RC script name variables
+# $1 ... hosttype (master|shadow|bdb|execd|dbwriter)
+#
+SetupRcScriptNames61()
+{
+   case $1 in
+      qmaster)
+         hosttype="master";;
+      shadow)
+         return;;
+      *)
+         hosttype=$1;;
+   esac
+   if [ $hosttype = "master" ]; then
+      TMP_SGE_STARTUP_FILE=/tmp/sgemaster.$$
+      STARTUP_FILE_NAME=sgemaster
+      S95NAME=S95sgemaster
+      K03NAME=K03sgemaster
+      DAEMON_NAME="qmaster"
+   elif [ $hosttype = "bdb" ]; then
+      TMP_SGE_STARTUP_FILE=/tmp/sgebdb.$$
+      STARTUP_FILE_NAME=sgebdb
+      S95NAME=S94sgebdb
+      K03NAME=K04sgebdb
+      DAEMON_NAME="berkeleydb"
+   elif [ $hosttype = "dbwriter" ]; then
+      TMP_SGE_STARTUP_FILE=/tmp/sgedbwriter.$$
+      STARTUP_FILE_NAME=sgedbwriter
+      S95NAME=S96sgedbwriter
+      K03NAME=K03sgedbwriter
+      DAEMON_NAME="dbwriter"
+   elif [ $hosttype = "execd" ]; then
+      TMP_SGE_STARTUP_FILE=/tmp/sgeexecd.$$
+      STARTUP_FILE_NAME=sgeexecd
+      S95NAME=S96sgeexecd
+      K03NAME=K02sgeexecd
+      DAEMON_NAME="execd"
+   else
+      $INFOTEXT "Unknown option $1 to SetupRcScriptNames61()."
+      $INFOTEXT -log "Unknown option $1 to SetupRcScriptNames61()."
+      MoveLog
+      exit 1
+   fi
+   SGE_STARTUP_FILE=$SGE_ROOT/$SGE_CELL/common/$STARTUP_FILE_NAME
+}
+
+#-------------------------------------------------------------------------
+# SetupRcScriptNames: Sets up RC script name variables
+# $1 ... hosttype (master|bdb|execd|dbwriter)
+# $2 ... empty or "61" to call SetupRcScriptNames61 instead
+#
+SetupRcScriptNames()
+{
+   if [ "$2" = "61" ]; then
+      SetupRcScriptNames61 $1
+      return
+   fi
+
+   case $1 in
+      qmaster)
+         hosttype="master";;
+      shadow)
+         DAEMON_NAME="shadow"
+         return;;
+      *)
+         hosttype=$1;;
+   esac
+   if [ $hosttype = "master" ]; then
+      script_name=sgemaster
+      TMP_SGE_STARTUP_FILE=/tmp/sgemaster.$$
+      STARTUP_FILE_NAME=sgemaster.$SGE_CLUSTER_NAME
+      S95NAME=S95sgemaster.$SGE_CLUSTER_NAME
+      K03NAME=K03sgemaster.$SGE_CLUSTER_NAME
+      DAEMON_NAME="qmaster"
+   elif [ $hosttype = "bdb" ]; then
+      script_name=sgebdb
+      TMP_SGE_STARTUP_FILE=/tmp/sgebdb.$$
+      STARTUP_FILE_NAME=sgebdb
+      S95NAME=S94sgebdb
+      K03NAME=K04sgebdb
+      DAEMON_NAME="berkeleydb"
+   elif [ $hosttype = "dbwriter" ]; then
+      script_name=sgedbwriter
+      TMP_SGE_STARTUP_FILE=/tmp/sgedbwriter.$$
+      STARTUP_FILE_NAME=sgedbwriter.$SGE_CLUSTER_NAME
+      S95NAME=S97sgedbwriter.$SGE_CLUSTER_NAME
+      K03NAME=K03sgedbwriter.$SGE_CLUSTER_NAME
+      DAEMON_NAME="dbwriter"
+   elif [ $hosttype = "execd" ]; then
+      script_name=sgeexecd
+      TMP_SGE_STARTUP_FILE=/tmp/sgeexecd.$$
+      STARTUP_FILE_NAME=sgeexecd.$SGE_CLUSTER_NAME
+      S95NAME=S96sgeexecd.$SGE_CLUSTER_NAME
+      K03NAME=K02sgeexecd.$SGE_CLUSTER_NAME
+      DAEMON_NAME="execd"
+   else
+      $INFOTEXT "Unknown option $1 to SetupRcScriptNames()."
+      $INFOTEXT -log "Unknown option $1 to SetupRcScriptNames()."
+      MoveLog
+      exit 1
+   fi
+   SGE_STARTUP_FILE=$SGE_ROOT/$SGE_CELL/common/$script_name
+}
+
+#-------------------------------------------------------------------------
+# CheckRCfiles: Check for presence RC scripts
+#               Requires SGE_ROOT and SGE_CELL to be set                   
+# $1 ... can be empty or "61" to detect darwin RC script on 61
+#
+CheckRCfiles()
+{
+   rc_ret=0
+   rc_path=""
+   # LSB, etc.
+   if [ "$RC_FILE" = "lsb" -o "$RC_FILE" = "insserv-linux" -o "$RC_FILE" = "update-rc.d" ]; then
+      rc_path="$RC_PREFIX/$STARTUP_FILE_NAME"
+   # System V
+   elif [ "$RC_FILE" = "sysv_rc" ]; then
+      rc_path="$RC_PREFIX/init.d/$STARTUP_FILE_NAME"
+   # Freebsd
+   elif [ "$RC_FILE" = "freebsd" ]; then
+      rc_path="$RC_PREFIX/sge${RC_SUFFIX}"
+   # Darwin
+   elif [ "$RC_FILE" = "SGE" ]; then
+      if [ "$1" = "61" ]; then
+         rc_path="$RC_PREFIX/$RC_DIR/$RC_FILE"
+      else
+         rc_path="$RC_PREFIX/$RC_DIR.$SGE_CLUSTER_NAME/$RC_FILE"
+      fi
+   # Other
+   else
+      grep $STARTUP_FILE_NAME $RC_FILE > /dev/null 2>&1
+      if [ $? -eq 0 ]; then
+         rc_ret=1
+      fi
+   fi
+
+   if [ -n "$rc_path" -a -f "$rc_path" ]; then
+      rc_ret=1
+   fi
+   return $rc_ret
+}
+
+#-------------------------------------------------------------------------
+# CheckIfClusterNameAlreadyExists: Check for presence of SMF service and RC script
+#                                  Requires SGE_ROOT and SGE_CELL to be set                   
+# $1 ... compoment we are installing
+#
+CheckIfClusterNameAlreadyExists() 
+{
+   if [ -z "$1" ]; then
+      return 0
+   fi
+
+   hosttype=$1
+   infotext_temp_msg=""
+   ret=0
+   #Try if SMF service already exists
+   if [ "$SGE_ENABLE_SMF" = true ]; then
+      ServiceAlreadyExists $hosttype
+      if [ $? -eq 1 ]; then
+         infotext_temp_msg="Specified cluster name >\$SGE_CLUSTER_NAME=%s< is already used by your system!\nDetected SMF service svc:/application/sge/$hosttype:%s."
+         if [ $AUTO = true ]; then
+            $INFOTEXT  -log "$infotext_temp_msg" $SGE_CLUSTER_NAME $SGE_CLUSTER_NAME
+         else
+            $INFOTEXT  "$infotext_temp_msg" $SGE_CLUSTER_NAME $SGE_CLUSTER_NAME
+         fi
+         ret=1
+      fi
+   fi
+
+   # Shadowd does not have RC script
+   if [ "$hosttype" = "shadowd" ]; then
+      return $ret
+   fi
+
+   #Check for RCscript
+   SetupRcScriptNames $hosttype
+
+   CheckRCfiles
+   rc_res=$?
+  
+   #Prepare correct return value and message
+   if [ $rc_res -eq 1 ]; then
+      if [ $ret -eq 1 ]; then
+         infotext_temp_msg="Detected a presence of old SGE RC scripts for cluster >\$SGE_CLUSTER_NAME=%s< as well!\n%s\n"
+         ret=3
+      else
+         infotext_temp_msg="Specified cluster name >\$SGE_CLUSTER_NAME=%s< resulted in the following conflict!\nDetected a presence of old RC scripts.\n%s\n"
+         ret=2
+      fi
+      if [ "$AUTO" = "true" ]; then
+         $INFOTEXT  -log "$infotext_temp_msg" $SGE_CLUSTER_NAME $rc_path
+      else
+         $INFOTEXT  "$infotext_temp_msg" $SGE_CLUSTER_NAME $rc_path
+      fi
+   fi
+   
+   return $ret
+}
+
+#-------------------------------------------------------------------------
+# RemoveRC_SMF: Remove RC files or SMF service
+# $1 ... service name 
+# $2 ... exit code from CheckIfClusterNameAlreadyExists 
+#        valid values are: 0 1 2 3
+#
+RemoveRC_SMF()
+{
+   rem_res=0
+   case $2 in
+      1) SMFUnregister $1
+         rem_res=$?
+         ;;
+      2) RemoveRcScript $HOST $1 $euid
+         rem_res=$?
+         ;;
+      3) SMFUnregister $1
+         rem_res=$?
+         if [ $rem_res -eq 0 ]; then
+            RemoveRcScript $HOST $1 $euid
+            rem_res=$?
+         fi
+         ;;
+   esac
+   if [ $rem_res -ne 0 ]; then
+      $INFOTEXT "Removal not successful!"
+      if [ "$AUTO"=true ]; then
+         $INFOTEXT -log "Removal not successful!"
+         MoveLog
+      fi
+      exit 1
+   fi
+}
+
+
+#-------------------------------------------------------------------------
+# SearchForExistingInstallations
+# $1 .. list of components to search for
+#
+SearchForExistingInstallations()
+{
+   #Check services with the old clustername we are about to delete
+   SGE_CLUSTER_NAME=`cat $SGE_ROOT/$SGE_CELL/common/cluster_name 2>/dev/null`
+   if [ -z "$SGE_CLUSTER_NAME" ]; then
+      return
+   fi
+   
+   #MacOS overwrites the files (all services share single file)
+   if [ "$ARCH" = darwin -o "$ARCH" = darwin-ppc -o "$ARCH" = darwin-x86 ]; then
+      return
+   fi
+    
+   TMP_DAEMON_LIST=$1
+   exists=0
+   for TMP_DAEMON in $TMP_DAEMON_LIST; do
+      CheckIfClusterNameAlreadyExists $TMP_DAEMON
+      eval "$TMP_DAEMON"_ret=$?
+      eval test_val='$'"$TMP_DAEMON"_ret
+      if [ $test_val -ne 0 ]; then 
+         exists=1
+      fi
+   done
+   #If service/RC exits we ask first to uninstall and exit
+   if [ $exists -eq 1 ]; then
+      if [ "$AUTO" = "true" ]; then
+         $INFOTEXT -log "Remove existing component(s) of cluster > %s < first!\n" $SGE_CLUSTER_NAME
+         MoveLog
+         exit 1
+      else
+         $INFOTEXT -auto $AUTO -ask "y" "n" -def "y" -n "\nStop the installation (WARNING: selecting 'n' will remove the detected cluster) (y/n) [y] >> "
+         if [ $? -eq 0 ]; then
+            exit 1
+         fi
+         #Remove old files
+         for TMP_DAEMON in $TMP_DAEMON_LIST; do
+            eval test_val='$'"$TMP_DAEMON"_ret
+            if [ $test_val -ne 0 ]; then
+               $CLEAR
+               RemoveRC_SMF $TMP_DAEMON $test_val
+            fi
+         done
+      fi
+   fi
+}
+
+
+#-------------------------------------------------------------------------
+# ProcessSGEClusterName: Ask for cluster name
+#                        Requires SGE_ROOT and SGE_CELL to be set
+# $1 ... compoment we are installing
+#        valid values are: bdb, master, shadowd, execd, dbwriter
+#                          "" - no service checking
+#
+ProcessSGEClusterName()
+{
+   TMP_CLUSTER_NAME=`cat $SGE_ROOT/$SGE_CELL/common/cluster_name 2>/dev/null`
+   # We always use the name in cluster_name file
+   if [ -n "$TMP_CLUSTER_NAME" ]; then
+      SGE_CLUSTER_NAME=$TMP_CLUSTER_NAME
+      return
+   fi   
+
+   if [ "$SGE_QMASTER_PORT" = "" ]; then
+      SGE_QMASTER_PORT=`./utilbin/$SGE_ARCH/getservbyname -number sge_qmaster`
+   fi
+
+   done=false
+
+   while [ $done = false ]; do
+      GetDefaultClusterName
+      $CLEAR
+      $INFOTEXT -u "\nUnique cluster name"
+      $INFOTEXT "\nThe cluster name uniquely identifies a specific Sun Grid Engine cluster.\n" \
+                "The cluster name must be unique throughout your organization. The name \n" \
+                " is not related to the SGE cell.\n\n" \
+                "The cluster name must start with a letter ([A-Za-z]), followed by letters, \n" \
+                "digits ([0-9]), dashes ("-") or underscores ("_")."
+      $ECHO
+      SGE_CLUSTER_NAME_VAL=`eval echo $SGE_CLUSTER_NAME`
+
+      $INFOTEXT -n "Enter new cluster name or hit <RETURN>\n" \
+                   "to use default [%s] >> " $SGE_CLUSTER_NAME_VAL
+
+      eval SGE_CLUSTER_NAME=`Enter $SGE_CLUSTER_NAME_VAL`
+
+      IsValidClusterName $SGE_CLUSTER_NAME
+      if [ $? -ne 0 ]; then
+         $INFOTEXT "Specified cluster name is not valid!\n" \
+                   "The cluster name must start with a letter ([A-Za-z]), followed by letters, \n" \
+                   "digits ([0-9]), dashes ("-") or underscores ("_")."  
+         if [ $AUTO = true ]; then
+            $INFOTEXT  -log "Specified cluster name is not valid!\n" \
+               "The cluster name must start with a letter ([A-Za-z]), followed by letters, \n" \
+               "digits ([0-9]), dashes ("-") or underscores ("_")."
+            MoveLog
+            exit 1
+         fi
+         SGE_CLUSTER_NAME=""
+         $INFOTEXT -wait -auto $AUTO -n "Hit <RETURN> to enter new cluster name >> "
+      elif [ $euid -eq 0 ]; then
+         #Name is valid, we check if service/RC script already exists only is root
+         CheckIfClusterNameAlreadyExists $1
+         validation_res=$?
+         if [ $validation_res -ne 0 ]; then
+            if [ "$AUTO" = true ]; then
+               MoveLog
+               exit 1
+            fi
+            $INFOTEXT "Do you want to remove them?"
+            $INFOTEXT -auto $AUTO -ask "y" "n" -def "y" -n \
+                      "\nNOTE: Choose 'n' to select new SGE_CLUSTER_NAME  (y/n) [y] >> "
+            if [ $? -eq 0 ]; then
+               $CLEAR
+               RemoveRC_SMF $1 $validation_res
+               done=true
+            fi                  
+         else
+            done=true
+         fi      
+      else
+         done=true
+      fi
+   done
+      
+   #Only BDB or qmaster installation can create cluster_name file
+   if [ \( "$1" = "bdb" -o "$1" = "qmaster" -o "$UPDATE" = "true" \) -a ! -f $SGE_ROOT/$SGE_CELL/common/cluster_name ]; then
+      Makedir "$SGE_ROOT/$SGE_CELL/common"
+      SafelyCreateFile $SGE_ROOT/$SGE_CELL/common/cluster_name 644 "$SGE_CLUSTER_NAME"
+   fi
+
+   $ECHO
+   $INFOTEXT "Your \$SGE_CLUSTER_NAME: %s\n" $SGE_CLUSTER_NAME
+   $INFOTEXT -log "Your \$SGE_CLUSTER_NAME: %s" $SGE_CLUSTER_NAME
+   $INFOTEXT -wait -auto $AUTO -n "Hit <RETURN> to continue >> "
+   $CLEAR
+}
+
+#-------------------------------------------------------------------------------
+# SafelyCreateFile: Creates a file as admin user (must be set)
+#  $1 - file name
+#  $2 - final file permissions
+#  $3 - file content
+#
+SafelyCreateFile()
+{
+   ExecuteAsAdmin $TOUCH $1
+   if [ -n "$3" ]; then
+      ExecuteAsAdmin $CHMOD 666 $1
+      tmp_file="/tmp/tmp_safe_create_file_$$"
+      $ECHO "$3" > $tmp_file
+      ExecuteAsAdmin cp $tmp_file $1
+      Execute rm -f $tmp_file
+   fi
+   ExecuteAsAdmin $CHMOD $2 $1
+}
+
+#-------------------------------------------------------------------------------
+# CheckForSMF: Sets SGE_ENABLE_SMF to true if support SMF is desired and possible
+#              false if machine does not support it
+#
+CheckForSMF()
+{
+   #SGE_ENABLE_SMF=true now mean we want to try to use it means we want and have SMF
+   if [ "$SGE_ENABLE_SMF" = "true" ]; then
+      if [ -f /lib/svc/share/smf_include.sh ]; then 
+         . /lib/svc/share/smf_include.sh
+         smf_present
+         SGE_ENABLE_SMF="$?"
+         if [ $SGE_ENABLE_SMF -eq 0 ]; then
+            SGE_ENABLE_SMF="true"
+            . ./util/sgeSMF/sge_smf_support.sh
+         else
+            $INFOTEXT "Disabling SMF - SVC repository not found!!!" 
+            SGE_ENABLE_SMF="false"
+            SMF_FLAGS="-nosmf"
+         fi
+      else
+         SGE_ENABLE_SMF="false"
+         SMF_FLAGS="-nosmf"
+      fi
+   fi
+}
+
 #-------------------------------------------------------------------------
 # GiveHints: give some useful hints at the end of the installation
 #
@@ -1297,6 +2022,7 @@ GiveHints()
                 "This will set or expand the following environment variables:\n\n" \
                 "   - \$SGE_ROOT         (always necessary)\n" \
                 "   - \$SGE_CELL         (if you are using a cell other than >default<)\n" \
+                "   - \$SGE_CLUSTER_NAME (always necessary)\n" \
                 "   - \$SGE_QMASTER_PORT (if you haven't added the service >sge_qmaster<)\n" \
                 "   - \$SGE_EXECD_PORT   (if you haven't added the service >sge_execd<)\n" \
                 "   - \$PATH/\$path       (to find the Grid Engine binaries)\n" \
@@ -1311,16 +2037,23 @@ GiveHints()
       master_spool=`dirname $tmp_spool`
 
       $INFOTEXT -u "\nGrid Engine messages"
-      $INFOTEXT "\nGrid Engine messages can be found at:\n\n" \
-                "   /tmp/qmaster_messages (during qmaster startup)\n" \
-                "   /tmp/execd_messages   (during execution daemon startup)\n\n" \
-                "After startup the daemons log their messages in their spool directories.\n\n" \
+      if [ "$SGE_ENABLE_SMF" = true ]; then
+         $INFOTEXT "\nGrid Engine messages can be found at:\n\n" \
+                   "   Startup messages can be found in SMF service log files.\n" \
+                   "   You can get the name of the log file by calling svcs -l <SERVICE_NAME> \n" \
+                   "   E.g.: svcs -l svc:/application/sge/qmaster:%s\n\n" $SGE_CLUSTER_NAME
+      else
+         $INFOTEXT "\nGrid Engine messages can be found at:\n\n" \
+                   "   /tmp/qmaster_messages (during qmaster startup)\n" \
+                   "   /tmp/execd_messages   (during execution daemon startup)\n\n"
+      fi
+      $INFOTEXT "After startup the daemons log their messages in their spool directories.\n\n" \
                 "   Qmaster:     %s\n" \
                 "   Exec daemon: <execd_spool_dir>/<hostname>/messages\n" $master_spool/qmaster/messages
 
       $INFOTEXT -u "\nGrid Engine startup scripts"
       $INFOTEXT "\nGrid Engine startup scripts can be found at:\n\n" \
-                "   %s (qmaster and scheduler)\n" \
+                "   %s (qmaster)\n" \
                 "   %s (execd)\n" $SGE_ROOT/$SGE_CELL/common/sgemaster $SGE_ROOT/$SGE_CELL/common/sgeexecd
 
       $INFOTEXT -auto $AUTO -ask "y" "n" -def "n" -n \
@@ -1376,14 +2109,20 @@ PrintLocalConf()
    else
       $ECHO "xterm                  $XTERM"
    fi
-   $ECHO "qlogin_daemon          $QLOGIN_DAEMON"
-   $ECHO "rlogin_daemon          $RLOGIN_DAEMON"
-   $ECHO "qrsh_daemon		 $QRSH_DAEMON"
+   if [ "$QLOGIN_DAEMON" != "undef" -a "$QLOGIN_DAEMON" != "builtin" ]; then
+      $ECHO "qlogin_daemon          $QLOGIN_DAEMON"
+   fi
+   if [ "$RLOGIN_DAEMON" != "undef" -a "$RLOGIN_DAEMON" != "builtin" ]; then
+      $ECHO "rlogin_daemon          $RLOGIN_DAEMON"
+   fi
    if [ "$LOCAL_EXECD_SPOOL" != "undef" ]; then
       $ECHO "execd_spool_dir        $LOCAL_EXECD_SPOOL"
    fi
-   if [ "$RSH_DAEMON" != "undef" ]; then
+   if [ "$RSH_DAEMON" != "undef" -a "$RSH_DAEMON" != "builtin" ]; then
       $ECHO "rsh_daemon             $RSH_DAEMON"
+   fi
+   if [ "$QRSH_DAEMON" != "undef" -a "$QRSH_DAEMON" != "builtin" ]; then
+      $ECHO "qrsh_daemon		 $QRSH_DAEMON"
    fi
    if [ "$LOADSENSOR_COMMAND" != "undef" ]; then
       $ECHO "load_sensor            $SGE_ROOT/$LOADSENSOR_COMMAND"
@@ -1403,11 +2142,9 @@ CreateSGEStartUpScripts()
    if [ $hosttype = "master" ]; then
       TMP_SGE_STARTUP_FILE=/tmp/sgemaster.$$
       STARTUP_FILE_NAME=sgemaster
-      S95NAME=S95sgemaster
    else
       TMP_SGE_STARTUP_FILE=/tmp/sgeexecd.$$
       STARTUP_FILE_NAME=sgeexecd
-      S95NAME=S95sgeexecd
    fi
 
    if [ -f $TMP_SGE_STARTUP_FILE ]; then
@@ -1422,37 +2159,40 @@ CreateSGEStartUpScripts()
       Execute rm ${TMP_SGE_STARTUP_FILE}.1
    fi
 
-   SGE_STARTUP_FILE=$SGE_ROOT_VAL/$COMMONDIR/$STARTUP_FILE_NAME
+   SGE_STARTUP_FILE=$SGE_ROOT/$SGE_CELL/common/$STARTUP_FILE_NAME
 
    if [ $create = true ]; then
 
       if [ $hosttype = "master" ]; then
          template="util/rctemplates/sgemaster_template"
+         svc_name="sgemaster.${SGE_CLUSTER_NAME}"
       else
          template="util/rctemplates/sgeexecd_template"
+         svc_name="sgeexecd.${SGE_CLUSTER_NAME}"
       fi
 
-      ExecuteAsAdmin sed -e "s%GENROOT%${SGE_ROOT_VAL}%g" \
-                            -e "s%GENCELL%${SGE_CELL_VAL}%g" \
-                            -e "/#+-#+-#+-#-/,/#-#-#-#-#-#/d" \
-                            $template > ${TMP_SGE_STARTUP_FILE}.0
+      Execute sed -e "s%GENROOT%${SGE_ROOT_VAL}%g" \
+                  -e "s%GENCELL%${SGE_CELL_VAL}%g" \
+                  -e "s%GENSGESVC%${svc_name}%g" \
+                  -e "/#+-#+-#+-#-/,/#-#-#-#-#-#/d" \
+                  $template > ${TMP_SGE_STARTUP_FILE}.0
 
-      if [ "$SGE_QMASTER_PORT" != "" ]; then
-         ExecuteAsAdmin sed -e "s/=GENSGE_QMASTER_PORT/=$SGE_QMASTER_PORT/" \
-                            ${TMP_SGE_STARTUP_FILE}.0 > $TMP_SGE_STARTUP_FILE.1
+      if [ "$SGE_QMASTER_PORT" != "" -a "$qmaster_service" != "true" ]; then
+         Execute sed -e "s/=GENSGE_QMASTER_PORT/=$SGE_QMASTER_PORT/" \
+                     ${TMP_SGE_STARTUP_FILE}.0 > $TMP_SGE_STARTUP_FILE.1
       else
-         ExecuteAsAdmin sed -e "/GENSGE_QMASTER_PORT/d" \
-                            ${TMP_SGE_STARTUP_FILE}.0 > $TMP_SGE_STARTUP_FILE.1
+         Execute sed -e "/GENSGE_QMASTER_PORT/d" \
+                     ${TMP_SGE_STARTUP_FILE}.0 > $TMP_SGE_STARTUP_FILE.1
       fi
 
-      if [ "$SGE_EXECD_PORT" != "" ]; then
-         ExecuteAsAdmin sed -e "s/=GENSGE_EXECD_PORT/=$SGE_EXECD_PORT/" \
-                            ${TMP_SGE_STARTUP_FILE}.1 > $TMP_SGE_STARTUP_FILE
+      if [ "$SGE_EXECD_PORT" != "" -a "$execd_service" != "true" ]; then
+         Execute sed -e "s/=GENSGE_EXECD_PORT/=$SGE_EXECD_PORT/" \
+                     ${TMP_SGE_STARTUP_FILE}.1 > $TMP_SGE_STARTUP_FILE
       else
-         ExecuteAsAdmin sed -e "/GENSGE_EXECD_PORT/d" \
-                            ${TMP_SGE_STARTUP_FILE}.1 > $TMP_SGE_STARTUP_FILE
+         Execute sed -e "/GENSGE_EXECD_PORT/d" \
+                     ${TMP_SGE_STARTUP_FILE}.1 > $TMP_SGE_STARTUP_FILE
       fi
-
+      Execute $CHMOD 666 $TMP_SGE_STARTUP_FILE
       ExecuteAsAdmin $CP $TMP_SGE_STARTUP_FILE $SGE_STARTUP_FILE
       ExecuteAsAdmin $CHMOD a+x $SGE_STARTUP_FILE
 
@@ -1472,7 +2212,6 @@ CreateSGEStartUpScripts()
 }
 
 
-
 #-------------------------------------------------------------------------
 # AddSGEStartUpScript: Add startup script to rc files if root installs
 #
@@ -1481,33 +2220,16 @@ AddSGEStartUpScript()
    euid=$1
    hosttype=$2
 
-   $CLEAR
-   if [ $hosttype = "master" ]; then
-      TMP_SGE_STARTUP_FILE=/tmp/sgemaster.$$
-      STARTUP_FILE_NAME=sgemaster
-      S95NAME=S95sgemaster
-      K03NAME=K03sgemaster
-      DAEMON_NAME="qmaster/scheduler"
-   elif [ $hosttype = "shadow" ]; then
-      #Currently shadowd does not install RC script on its own
-      return
-   elif [ $hosttype = "bdb" ]; then
-      TMP_SGE_STARTUP_FILE=/tmp/sgebdb.$$
-      STARTUP_FILE_NAME=sgebdb
-      S95NAME=S94sgebdb
-      K03NAME=K04sgebdb
-      DAEMON_NAME="berkeleydb"
-   else
-      TMP_SGE_STARTUP_FILE=/tmp/sgeexecd.$$
-      STARTUP_FILE_NAME=sgeexecd
-      S95NAME=S96sgeexecd
-      K03NAME=K02sgeexecd
-      DAEMON_NAME="execd"
+   if [ -z "$SGE_CLUSTER_NAME" ]; then
+      $INFOTEXT "AddSGEStartUpScript error: expected SGE_CLUSTER_NAME!!!"
+      exit 1
    fi
+   
+   $CLEAR
+   
+   SetupRcScriptNames $hosttype
 
-   SGE_STARTUP_FILE=$SGE_ROOT/$SGE_CELL/common/$STARTUP_FILE_NAME
-
-   InstallRcScript 
+   InstallRcScript
 
    $INFOTEXT -wait -auto $AUTO -n "\nHit <RETURN> to continue >> "
    $CLEAR
@@ -1517,24 +2239,65 @@ AddSGEStartUpScript()
 InstallRcScript()
 {
    if [ $euid != 0 ]; then
+      SGE_ENABLE_SMF=false
+      SMF_FLAGS="-nosmf"
       return 0
    fi
 
    $INFOTEXT -u "\n%s startup script" $DAEMON_NAME
 
    # --- from here only if root installs ---
-   $INFOTEXT -auto $AUTO -ask "y" "n" -def "y" -n \
-             "\nWe can install the startup script that will\n" \
+   if [ "$SGE_ENABLE_SMF" = "true" ]; then
+      #Normally qmaster and shadowd share the same RC script
+      if [ "$hosttype" = "shadow" ]; then
+         DAEMON_NAME=shadowd
+      fi
+      $INFOTEXT "\nDo you want to start %s automatically at machine boot?" "$DAEMON_NAME"
+      $INFOTEXT -auto $AUTO -ask "y" "n" -def "y" -n \
+                "NOTE: If you select \"n\" SMF will be not used at all! (y/n) [y] >> "
+   # RC on shadow are in qmaster already
+   elif [ "$hosttype" = "shadow" ]; then
+      return 0
+   else
+      $INFOTEXT -auto $AUTO -ask "y" "n" -def "y" -n "\nWe can install the startup script that will\n" \
              "start %s at machine boot (y/n) [y] >> " $DAEMON_NAME
-
+   fi
    ret=$?
-   if [ "$AUTO" = "true" -a "$ADD_TO_RC" = "false" ]; then
+   if [ "$AUTO" = "true" -a "$ADD_TO_RC" = "false" -a "$SGE_ENABLE_SMF" != "true" ]; then
       $CLEAR
       return
    else
-      if [ $ret = 1 ]; then
+      if [ $ret -ne 0 ]; then
+         SGE_ENABLE_SMF=false
+         SMF_FLAGS="-nosmf"
          return
       fi
+   fi
+      
+   #SMF
+   if [ "$SGE_ENABLE_SMF" = "true" ]; then
+      #DBwriter does not have CLUSTER NAME at this point
+      if [ -z "$SGE_CLUSTER_NAME" ]; then
+         SGE_CLUSTER_NAME=`cat $SGE_ROOT/$SGE_CELL/common/cluster_name 2>/dev/null`
+      fi
+      if [ "$AUTO" = "true" ]; then
+         OLD_INFOTEXT=$INFOTEXT
+         INFOTEXT="$INFOTEXT -log"
+      fi
+
+      SMFRegister "$DAEMON_NAME" "$is_server"
+      ret=$?
+
+      if [ "$AUTO" = "true" ]; then
+         INFOTEXT=$OLD_INFOTEXT
+      fi
+      if [ $ret -ne 0 ]; then
+         if [ "$AUTO" = "true" ]; then
+            MoveLog
+         fi
+         exit 1
+		fi
+      return
    fi
 
    # If system is Linux Standard Base (LSB) compliant, use the install_initd utility
@@ -1618,6 +2381,7 @@ InstallRcScript()
       echo  cp $SGE_STARTUP_FILE $RC_PREFIX/sge${RC_SUFFIX}
       Execute cp $SGE_STARTUP_FILE $RC_PREFIX/sge${RC_SUFFIX}
    elif [ "$RC_FILE" = "SGE" ]; then
+      RC_DIR="$RC_DIR.$SGE_CLUSTER_NAME"
       echo  mkdir -p "$RC_PREFIX/$RC_DIR"
       Execute mkdir -p "$RC_PREFIX/$RC_DIR"
 
@@ -1655,6 +2419,7 @@ PLIST
           "$DARWIN_TEMPLATE" > "$RC_PREFIX/$RC_DIR/$RC_FILE.$$"
      Execute chmod a+x "$RC_PREFIX/$RC_DIR/$RC_FILE.$$"
      Execute mv "$RC_PREFIX/$RC_DIR/$RC_FILE.$$" "$RC_PREFIX/$RC_DIR/$RC_FILE"
+     RC_DIR="SGE"
    else
       # if this is not System V we simple add the call to the
       # startup script to RC_FILE
@@ -1732,6 +2497,8 @@ MoveLog()
    if [ "$AUTO" = "false" ]; then
       return
    fi
+   
+   insideMoveLog=true
 
    GetAdminUser
 
@@ -1758,11 +2525,15 @@ MoveLog()
    if [ "$is_master" = "true" ]; then
       loghosttype="qmaster"
       is_master="false"
+   elif [ "$is_shadow" = "true" ]; then
+      loghosttype="shadowd"
+   elif [ "$is_bdb" = "true" ]; then
+      loghosttype="bdb"
    else
       loghosttype="execd"
    fi
 
-   if [ $EXECD = "uninstall" -o $QMASTER = "uninstall" ]; then
+   if [ $EXECD = "uninstall" -o $QMASTER = "uninstall" -o $SHADOW = "uninstall" -o $BERKELEY = "uninstall" ]; then
       installtype="uninstall"
    else
       installtype="install"
@@ -1779,6 +2550,8 @@ MoveLog()
    else
       $INFOTEXT "Can't find install log file: /tmp/%s" $LOGSNAME
    fi
+   
+   insideMoveLog=""
 }
 
 
@@ -1793,6 +2566,10 @@ if [ -f /tmp/$LOGSNAME ]; then
 else
    touch /tmp/$LOGSNAME
 fi
+
+if [ "$AUTOGUI" = true ]; then
+   $INFOTEXT "Install log can be found in: %s" /tmp/$LOGSNAME
+fi
 }
 
 
@@ -1800,9 +2577,9 @@ Stdout2Log()
 {
    if [ "$STDOUT2LOG" = "0" ]; then
       CLEAR=:
+      CreateLog
       SGE_NOMSG=1
       export SGE_NOMSG
-      CreateLog
       # make Filedescriptor(FD) 4 a copy of stdout (FD 1)
       exec 4>&1
       # open logfile for writing
@@ -1835,18 +2612,10 @@ CheckRunningDaemon()
    case $daemon_name in
 
       sge_qmaster )
-       if [ -f $QMDIR/qmaster.pid ]; then
+       if [ -s $QMDIR/qmaster.pid ]; then
           daemon_pid=`cat $QMDIR/qmaster.pid`
           $SGE_UTILBIN/checkprog $daemon_pid $daemon_name > /dev/null
           return $?      
-       fi
-      ;;
-
-      sge_schedd )
-       if [ -f $QMDIR/schedd/schedd.pid ]; then
-          daemon_pid=`cat $QMDIR/schedd/schedd.pid`
-          $SGE_UTILBIN/checkprog $daemon_pid $daemon_name > /dev/null
-          return $?
        fi
       ;;
 
@@ -1871,12 +2640,12 @@ CheckRunningDaemon()
 BackupConfig()
 {
    DATE=`date '+%Y-%m-%d_%H_%M_%S'`
-   BUP_BDB_COMMON_FILE_LIST_TMP="accounting bootstrap qtask settings.sh act_qmaster sgemaster host_aliases settings.csh sgeexecd sgebdb shadow_masters"
+   BUP_BDB_COMMON_FILE_LIST_TMP="accounting bootstrap qtask settings.sh st.enabled act_qmaster sgemaster host_aliases settings.csh sgeexecd sgebdb shadow_masters cluster_name"
    BUP_BDB_COMMON_DIR_LIST_TMP="sgeCA"
    BUP_BDB_SPOOL_FILE_LIST_TMP="jobseqnum"
-   BUP_CLASSIC_COMMON_FILE_LIST_TMP="configuration sched_configuration accounting bootstrap qtask settings.sh act_qmaster sgemaster host_aliases settings.csh sgeexecd shadow_masters"
+   BUP_CLASSIC_COMMON_FILE_LIST_TMP="configuration sched_configuration accounting bootstrap qtask settings.sh st.enabled act_qmaster sgemaster host_aliases settings.csh sgeexecd shadow_masters cluster_name"
    BUP_CLASSIC_DIR_LIST_TMP="sgeCA local_conf" 
-   BUP_CLASSIC_SPOOL_FILE_LIST_TMP="jobseqnum admin_hosts calendars centry ckpt cqueues exec_hosts hostgroups resource_quotas managers operators pe projects qinstances schedd submit_hosts usermapping users usersets zombies"
+   BUP_CLASSIC_SPOOL_FILE_LIST_TMP="jobseqnum advance_reservations admin_hosts calendars centry ckpt cqueues exec_hosts hostgroups resource_quotas managers operators pe projects qinstances schedd submit_hosts usermapping users usersets zombies"
    BUP_COMMON_FILE_LIST=""
    BUP_SPOOL_FILE_LIST=""
    BUP_SPOOL_DIR_LIST=""
@@ -1938,12 +2707,12 @@ BackupConfig()
 RestoreConfig()
 {
    DATE=`date '+%H_%M_%S'`
-   BUP_COMMON_FILE_LIST="accounting bootstrap qtask settings.sh act_qmaster sgemaster host_aliases settings.csh sgeexecd sgebdb shadow_masters"
+   BUP_COMMON_FILE_LIST="accounting bootstrap qtask settings.sh act_qmaster sgemaster host_aliases settings.csh sgeexecd sgebdb shadow_masters st.enabled cluster_name"
    BUP_COMMON_DIR_LIST="sgeCA"
    BUP_SPOOL_FILE_LIST="jobseqnum"
-   BUP_CLASSIC_COMMON_FILE_LIST="configuration sched_configuration accounting bootstrap qtask settings.sh act_qmaster sgemaster host_aliases settings.csh sgeexecd shadow_masters"
+   BUP_CLASSIC_COMMON_FILE_LIST="configuration sched_configuration accounting bootstrap qtask settings.sh act_qmaster sgemaster host_aliases settings.csh sgeexecd shadow_masters st.enabled cluster_name"
    BUP_CLASSIC_DIR_LIST="sgeCA local_conf" 
-   BUP_CLASSIC_SPOOL_FILE_LIST="jobseqnum admin_hosts calendars centry ckpt cqueues exec_hosts hostgroups managers operators pe projects qinstances schedd submit_hosts usermapping users usersets zombies"
+   BUP_CLASSIC_SPOOL_FILE_LIST="jobseqnum admin_hosts advance_reservations calendars centry ckpt cqueues exec_hosts hostgroups managers operators pe projects qinstances resource_quotas schedd submit_hosts usermapping users usersets zombies"
 
    MKDIR="mkdir -p"
    CP="cp -f"
@@ -2305,46 +3074,31 @@ CheckArchBins()
 }
 
 
-
+#-------------------------------------------------------------------------
+# RemoveRcScript: Remove the rc files
+# $1 ... HOST
+# $2 ... hosttype
+# $3 ... euid
+# $4 ... empty or "61" to remove scripts for 6.1 version (No cluster name)
+#
 RemoveRcScript()
 {
    host=$1
    hosttype=$2
    euid=$3
+   upgrade=$4
    
+   # --- from here only if root installs ---
    if [ $euid != 0 ]; then
-      $INFOTEXT "You are not a root user. Startup scripts could not be uninstalled!"
       return 0
    fi
 
    $INFOTEXT "Checking for installed rc startup scripts!\n"
 
-
-   if [ $hosttype = "master" ]; then
-      TMP_SGE_STARTUP_FILE=/tmp/sgemaster.$$
-      STARTUP_FILE_NAME=sgemaster
-      S95NAME=S95sgemaster
-      K03NAME=K03sgemaster
-      DAEMON_NAME="qmaster/scheduler"
-   elif [ $hosttype = "bdb" ]; then
-      TMP_SGE_STARTUP_FILE=/tmp/sgebdb.$$
-      STARTUP_FILE_NAME=sgebdb
-      S95NAME=S94sgebdb
-      K03NAME=K04sgebdb
-      DAEMON_NAME="berkeleydb"
-   else
-      TMP_SGE_STARTUP_FILE=/tmp/sgeexecd.$$
-      STARTUP_FILE_NAME=sgeexecd
-      S95NAME=S96sgeexecd
-      K03NAME=K02sgeexecd
-      DAEMON_NAME="execd"
-   fi
-
-   SGE_STARTUP_FILE=$SGE_ROOT/$SGE_CELL/common/$STARTUP_FILE_NAME
+   SetupRcScriptNames $hosttype $upgrade
 
    $INFOTEXT -u "\nRemoving %s startup script" $DAEMON_NAME
 
-   # --- from here only if root installs ---
    $INFOTEXT -auto $AUTO -ask "y" "n" -def "y" -n \
              "\nDo you want to remove the startup script \n" \
              "for %s at this machine? (y/n) [y] >> " $DAEMON_NAME
@@ -2359,9 +3113,29 @@ RemoveRcScript()
          return
       fi
    fi
+   
+   #If Solaris 10+ and SMF used and 6.1 version not specified
+   if [ "$SGE_ENABLE_SMF" = true ]; then
+      ServiceAlreadyExists $hosttype
+      if [ $? -eq 1 -a -z "$upgrade" ]; then
+         if [ "$AUTO" = "true" ]; then
+            OLD_INFOTEXT=$INFOTEXT
+            INFOTEXT="$INFOTEXT -log"
+         fi
 
+         SMFUnregister $hosttype
+         ret=$?
+
+         if [ "$AUTO" = "true" ]; then
+            INFOTEXT=$OLD_INFOTEXT
+         fi
+         if [ $ret -ne 0 ]; then
+            MoveLog
+            exit 1
+         fi
+      fi
    # If system is Linux Standard Base (LSB) compliant, use the install_initd utility
-   if [ "$RC_FILE" = lsb ]; then
+   elif [ "$RC_FILE" = lsb ]; then
       echo /usr/lib/lsb/remove_initd $RC_PREFIX/$STARTUP_FILE_NAME
       Execute /usr/lib/lsb/remove_initd $RC_PREFIX/$STARTUP_FILE_NAME
       # Several old Red Hat releases do not create/remove startup links from LSB conform
@@ -2418,6 +3192,9 @@ RemoveRcScript()
       echo  rm -f $RC_PREFIX/sge${RC_SUFFIX}
       Execute rm -f $RC_PREFIX/sge${RC_SUFFIX}
    elif [ "$RC_FILE" = "SGE" ]; then
+      if [ -z "$v61" ]; then
+         RC_DIR="$RC_DIR.$SGE_CLUSTER_NAME"
+      fi
       if [ $hosttype = "master" ]; then
         DARWIN_GEN_REPLACE="#GENMASTERRC"
       elif [ $hosttype = "bdb" ]; then
@@ -2437,6 +3214,7 @@ RemoveRcScript()
          echo rm -rf "$RC_PREFIX/$RC_DIR"
          Execute  rm -rf "$RC_PREFIX/$RC_DIR"
       fi
+      RC_DIR="SGE"
    else
       # if this is not System V we simple add the call to the
       # startup script to RC_FILE
@@ -2752,11 +3530,14 @@ RestoreCheckBootStrapFile()
       db_home=`cat $BACKUP_DIR/bootstrap | grep "spooling_params" | awk '{ print $2 }'`
       master_spool=`cat $BACKUP_DIR/bootstrap | grep "qmaster_spool_dir" | awk '{ print $2 }'`
       ADMINUSER=`cat $BACKUP_DIR/bootstrap | grep "admin_user" | awk '{ print $2 }'`
+      if [ "$ADMINUSER" = "none" ]; then
+         ADMINUSER="default"
+      fi
 
       MASTER_PORT=`cat $BACKUP_DIR/sgemaster | grep "SGE_QMASTER_PORT=" | head -1 | awk '{ print $1 }' | cut -d"=" -f2 | cut -d";" -f1` 
 
       ACT_QMASTER=`cat $BACKUP_DIR/act_qmaster`
-      
+
       $SGE_BIN/qping -info $ACT_QMASTER $MASTER_PORT qmaster 1 > /dev/null 2>&1
       ret=$?
 
@@ -2841,13 +3622,7 @@ CheckServiceAndPorts()
 
 CopyCA()
 {
-   if [ "$AUTO" = "true" -a "$CSP_COPY_CERTS" = "false" ]; then
-      $INFOTEXT -log "No CSP system installed!"
-      return 1
-   fi
-
    if [ "$CSP" = "false" -a \( "$WINDOWS_SUPPORT" = "false" -o "$WIN_DOMAIN_ACCESS" = "false" \) ]; then
-      $INFOTEXT "No CSP system installed!"
       return 1
    fi
    
@@ -2881,7 +3656,8 @@ CopyCA()
       "<%s> host? (y/n) [y] >>" $out_text
    fi
 
-   if [ "$?" = 0 ]; then
+   if [ "$AUTOGUI" != "true" ]; then #GUI made has the correct shell already
+    if [ "$?" = 0 ]; then
       $INFOTEXT "You can use a rsh or a ssh copy to transfer the cert files to each\n" \
                 "<%s> host (default: ssh)" $out_text
       $INFOTEXT -auto $AUTO -ask "y" "n" -def "n" -n "Do you want to use rsh/rcp instead of ssh/scp? (y/n) [n] >>"
@@ -2895,8 +3671,9 @@ CopyCA()
          $INFOTEXT -log "The remote copy command <%s> could not be found!" $COPY_COMMAND
          return
       fi
-   else
+    else
       return
+    fi
    fi
 
    if [ "$hosttype" = "execd" ]; then
@@ -2921,13 +3698,13 @@ CopyCaToHostType()
    fi
 
    for RHOST in $cmd; do
-         if [ "$RHOST" != "$HOST" ]; then
+      if [ "$RHOST" != "$HOST" ]; then
             CheckRSHConnection $RHOST
             if [ "$?" = 0 ]; then
-               $INFOTEXT "Copying certificates to host %s" $RHOST
-               $INFOTEXT -log "Copying certificates to host %s" $RHOST
+         $INFOTEXT "Copying certificates to host %s" $RHOST
+         $INFOTEXT -log "Copying certificates to host %s" $RHOST
                echo "mkdir /var/sgeCA > /dev/null 2>&1" | $SHELL_NAME $RHOST /bin/sh &
-               if [ "$SGE_QMASTER_PORT" = "" ]; then 
+         if [ "$SGE_QMASTER_PORT" = "" ]; then
                   $COPY_COMMAND -pr $HOST:/var/sgeCA/sge_qmaster $RHOST:/var/sgeCA
                else
                   $COPY_COMMAND -pr $HOST:/var/sgeCA/port$SGE_QMASTER_PORT $RHOST:/var/sgeCA
@@ -2936,34 +3713,34 @@ CopyCaToHostType()
                   $INFOTEXT "Setting ownership to adminuser %s" $ADMINUSER
                   $INFOTEXT -log "Setting ownership to adminuser %s" $ADMINUSER
                   if [ "$SGE_QMASTER_PORT" = "" ]; then
-                     PORT_DIR="sge_qmaster"
-                  else
-                     PORT_DIR="port$SGE_QMASTER_PORT"
-                  fi
+            PORT_DIR="sge_qmaster"
+         else
+            PORT_DIR="port$SGE_QMASTER_PORT"
+         fi
                   echo "chown $ADMINUSER /var/sgeCA/$PORT_DIR" | $SHELL_NAME $RHOST /bin/sh &
                   echo "chown -R $ADMINUSER /var/sgeCA/$PORT_DIR/$SGE_CELL" | $SHELL_NAME $RHOST /bin/sh &
-                  for dir in `ls /var/sgeCA/$PORT_DIR/$SGE_CELL/userkeys`; do
+               for dir in `ls /var/sgeCA/$PORT_DIR/$SGE_CELL/userkeys`; do
                      echo "chown -R $dir /var/sgeCA/$PORT_DIR/$SGE_CELL/userkeys/$dir" | $SHELL_NAME $RHOST /bin/sh &
-                  done
-               else
+               done               
+            else
                   $INFOTEXT "The certificate copy failed!"      
                   $INFOTEXT -log "The certificate copy failed!"      
-               fi
-            else
+	    fi
+         else
                $INFOTEXT "rsh/ssh connection to host %s is not working!" $RHOST
                $INFOTEXT "Certificates couldn't be copied!"
-               $INFOTEXT -log "rsh/ssh connection to host %s is not working!" $RHOST
-               $INFOTEXT -log "Certificates couldn't be copied!"
-               $INFOTEXT -wait -auto $AUTO -n "Hit <RETURN> to continue >> "
-            fi
-         else
+            $INFOTEXT -log "rsh/ssh connection to host %s is not working!" $RHOST
+            $INFOTEXT -log "Certificates couldn't be copied!"
+            $INFOTEXT -wait -auto $AUTO -n "Hit <RETURN> to continue >> "
+	 fi
+      else
             $INFOTEXT "rsh/ssh connection to host %s is not working!" $RHOST
             $INFOTEXT "Certificates couldn't be copied!"
             $INFOTEXT -log "rsh/ssh connection to host %s is not working!" $RHOST
             $INFOTEXT -log "Certificates couldn't be copied!"
-            $INFOTEXT -wait -auto $AUTO -n "Hit <RETURN> to continue >> "
-         fi
-      done
+         $INFOTEXT -wait -auto $AUTO -n "Hit <RETURN> to continue >> "
+      fi
+  done
 }
 
 #-------------------------------------------------------------------------
@@ -2971,16 +3748,33 @@ CopyCaToHostType()
 #
 GetAdminUser()
 {
-   ADMINUSER=`cat $SGE_ROOT/$SGE_CELL/common/bootstrap | grep "admin_user" | awk '{ print $2 }'`
+   if [ "$AUTO" = true ]; then
+	   #For auto we use template, since SGE_CELL might not yet exist
+	   TMP_CELL=$CELL_NAME
+   else
+	   TMP_CELL=$SGE_CELL
+   fi
+   #Try to get admin user from a bootstrap file
+   TMP_ADMINUSER=`cat $SGE_ROOT/$TMP_CELL/common/bootstrap 2>/dev/null | grep "admin_user" | awk '{ print $2 }'`
+   if [ -n "$TMP_ADMINUSER" ]; then
+      ADMINUSER=$TMP_ADMINUSER
+   elif [ "$AUTO" = true -o "$AUTOGUI" = true ]; then
+	   #For auto installations, if no bootstrap file use the value from the template
+	   ADMINUSER=$ADMIN_USER
+   fi
    euid=`$SGE_UTILBIN/uidgid -euid`
 
-   TMP_USER=`echo "$ADMINUSER" |tr "A-Z" "a-z"`
-   if [ \( -z "$TMP_USER" -o "$TMP_USER" = "none" \) -a $euid = 0 ]; then
-      ADMINUSER=default
+   TMP_USER=`echo "$ADMINUSER" |tr "[A-Z]" "[a-z]"`
+   if [  -z "$TMP_USER" -o "$TMP_USER" = "none" ]; then
+      if [ $euid = 0 ]; then
+         ADMINUSER=default
+      else
+         ADMINUSER=`whoami`
+      fi
    fi
 
    if [ "$SGE_ARCH" = "win32-x86" ]; then
-      HOSTNAME=`hostname | tr "a-z" "A-Z"`
+      HOSTNAME=`hostname | tr "[a-z]" "[A-Z]"`
       ADMINUSER="$HOSTNAME+$ADMINUSER"
    fi
 }
@@ -3051,6 +3845,16 @@ IsMailAdress() {
    esac
 }
 
+IsValidClusterName() {
+   res=`echo "$1" | awk ' \
+      /^[A-Za-z][A-Za-z0-9_-]*$/ { print "OK" } \
+   '`
+   if [ "$res" = "OK" ]; then
+      return 0
+   fi
+   return 1
+}
+
 CheckPortsCollision()
 {
    check_val=$1
@@ -3098,3 +3902,222 @@ CheckPortsCollision()
            return
    fi
 }
+
+#DoRemoteAction -  Executes an action on a remote host
+# $1 - host
+# $2 - remote username
+# $3 - command to execute (e.g.: "$SGE_ROOT/$SGE_CELL/common/sgeexecd start")
+DoRemoteAction()
+{
+  host="${1:?Missing host argument}"
+  user="${2:?Missing user argument}"
+  cmd="${3:?Missing command argument}"
+  if [ "$host" = "$HOST" ]; then     #local host
+     /bin/sh -c "$cmd"
+  elif [ "$user" = default ]; then
+     $SHELL_NAME "$host" "/bin/sh -c \"${cmd}\""
+  else
+     $SHELL_NAME -l "$user" "$host" "/bin/sh -c \"${cmd}\""
+  fi
+}
+
+#DoRemoteAction -  Executes an action on a remote host
+# $1 - list of hosts (separated by " ")
+# $2 - remote username
+# $3 - command to execute (e.g.: "$SGE_ROOT/$SGE_CELL/common/sgeexecd start")
+DoRemoteActionForHosts()
+{
+  host_list="${1:?Missing host_list argument}"
+  src_user="${2:?Missing user argument}"
+  cmd="${3:?Missing command argument}"
+  tmp_list="$host_list"
+  #Check if the list has lines
+  if [ `echo "$tmp_list" | wc -l` -lt 2 ]; then
+     host_list=`echo "$tmp_list" | awk  '{ for (i = 1; i <= NF; i++) print $i }'`
+  fi
+  for host in $host_list ; do
+     user="$src_user"
+     $INFOTEXT "\nProcessing $host ..."
+     if [ -f "$SGE_ROOT/$SGE_CELL/win_hosts_to_update" ]; then
+        host_uqdn=`echo $host | sed -e "s%[.].*$%%"`
+        cat $SGE_ROOT/$SGE_CELL/win_hosts_to_update | grep $host > /dev/null 2>&1
+	if [ "$?" -eq 0 -a $HOST != $host ]; then
+	   #We want to connect to a windows host only if not already there (but as who?)
+	   host_str=`echo $host_uqdn | tr [a-z] [A-Z]`
+	   if [ -n "$SGE_WIN_ADMIN" ]; then
+	      user="${host_str}+$SGE_WIN_ADMIN"
+	   else
+	      #We need to ask
+	      AUTO=false
+	      $INFOTEXT -n "Provide a valid windows administrator user name for host %s \n[%s] >> "  "$host" "$host_str+Administrator"
+	      eval user=`Enter "$host_str+Administrator"`
+	      AUTO=true
+	   fi
+	fi
+     fi
+     DoRemoteAction "$host" "$user" "$cmd"
+  done
+}
+
+
+
+#ManipulateOneDaemonType -  Add/Removes RC files of one type of all hosts listed in host
+#                                             Deletes exec spool dirs
+# $1 - list of hosts
+# $2 - type (qmaster, execd, bdb)
+# $3 - version (supported "61" otherwise 62 is used)
+ManipulateOneDaemonType()
+{
+   list="$1"
+   type="$2"
+   version="$3"
+   if [ "$version" != 61 ]; then
+      version=""
+   fi
+   
+   if [ -f $SGE_ROOT/$SGE_CELL/common/bootstrap ]; then
+      GetAdminUser
+   else
+      $INFOTEXT "\nObviously there was no qmaster installation for this cell yet. The file\n\n" \
+                "   %s\n\ndoes not exist. Exit." \$SGE_ROOT/$SGE_CELL/common/bootstrap
+      exit 1
+   fi
+   
+   if [ "$euid" -ne 0 -a "$START_CLUSTER" != true ]; then
+      $INFOTEXT -n "\nYou need to be a root to perform this action!\n"
+      exit 1
+   fi
+   
+   if [ -f $SGE_ROOT/$SGE_CELL/common/settings.sh ]; then
+      . $SGE_ROOT/$SGE_CELL/common/settings.sh
+   else
+      $INFOTEXT "\nThe file\n\n" \
+                "   %s\n\nwhich is required to set the environment variables does not exist. Exit." \
+                \$SGE_ROOT/$SGE_CELL/common/settings.sh
+      exit 1
+   fi
+   
+   #Construct the correct list when all  hosts required
+   if [ "$ALL_RC" = true ]; then
+      case $type in
+      qmaster)
+	 list=""
+         #Install all qmaster/shadowd hosts
+         if [ -f "$SGE_ROOT/$SGE_CELL/common/shadow_masters" ]; then
+            list=`cat "$SGE_ROOT/$SGE_CELL/common/shadow_masters"`
+         elif [ -f "$SGE_ROOT/$SGE_CELL/common/act_qmaster" ]; then
+            list=`cat "$SGE_ROOT/$SGE_CELL/common/act_qmaster"`
+         fi
+	 start_cmd="$SGE_ROOT/$SGE_CELL/common/sgemaster"
+	 ;;
+      execd)
+         list=`$SGE_BIN/qconf -sel`
+	 start_cmd="$SGE_ROOT/$SGE_CELL/common/sgeexecd"
+	 ;;
+      bdb)
+         list=`cat $SGE_ROOT/$SGE_CELL/common/bootstrap | grep "spooling_params" | awk '{ print $2}' 2>/dev/null`
+	 db_server_host=`echo "$SPOOLING_ARGS" | awk -F: '{print $1}'`
+         db_server_spool_dir=`echo "$SPOOLING_ARGS" | awk -F: '{print $2}'`
+         if [ -z "$db_server_spool_dir" ]; then #local bdb spooling
+	    $INFOTEXT -log "Your cluster does not use BDB server spooling!"
+	    return 1
+	 fi
+	 list="$db_server_host"
+	 start_cmd="$SGE_ROOT/$SGE_CELL/common/sgebdb"
+	 ;;
+      *)
+         $INFOTEXT "Unknown type %s in ManipulateOneTypeRC" "$type"
+         exit 1
+      esac
+   fi
+   
+   if [ -z "$list" ]; then
+      $INFOTEXT "No %s hosts defined!" $type
+      $INFOTEXT -log "No %s hosts defined!" $type
+      return 0
+   fi
+   
+   #Basic sommand settings
+   rc_cmd=". $SGE_ROOT/$SGE_CELL/common/settings.sh ; . $SGE_ROOT/util/arch_variables ;\
+. $SGE_ROOT/util/install_modules/inst_common.sh ; . $SGE_ROOT/util/install_modules/inst_qmaster.sh ; \
+. $SGE_ROOT/util/install_modules/inst_berkeley.sh ; . $SGE_ROOT/util/install_modules/inst_execd.sh ; \
+AUTO=true ; export AUTO ; SGE_ENABLE_SMF=true ; export SGE_ENABLE_SMF ; euid=$euid ; \
+cd $SGE_ROOT ; BasicSettings ; SetUpInfoText ; CheckForSMF ; "
+   if [ "$SMF_FLAGS" = -nosmf ]; then
+      rc_cmd="$rc_cmd SGE_ENABLE_SMF=false ; "
+   fi
+   
+   if [ "$START_CLUSTER" = true ]; then
+      $INFOTEXT -u "Starting all $type hosts:"
+      DoRemoteActionForHosts "$list" default "$start_cmd"
+      return
+   fi
+
+   if [ "$DEL_EXECD_SPOOL" = true ]; then        #DELETE EXECD SPOOL DIRS
+      cmd=". $SGE_ROOT/$SGE_CELL/common/settings.sh ; . $SGE_ROOT/util/arch_variables ; . $SGE_ROOT/util/install_modules/inst_common.sh ; \
+cd $SGE_ROOT && RemoteExecSpoolDirDelete"
+      $INFOTEXT -u "Initializing all local execd spool directories:"
+      DoRemoteActionForHosts "$list" default "$cmd"
+   fi
+   
+   if [ "$UPDATE_WIN" = true ]; then                   #UPDATE WINDOWS HELPER SERVICE ON ALL WINDOWS EXECDs
+      cmd=". $SGE_ROOT/$SGE_CELL/common/settings.sh ; . $SGE_ROOT/util/arch_variables ; . $SGE_ROOT/util/install_modules/inst_common.sh ; \
+. $SGE_ROOT/util/install_modules/inst_execd.sh ; cd $SGE_ROOT ; AUTO=true ; ECHO=echo ;BasicSettings ; SetUpInfoText ; SAVED_PATH=$PATH ; SetupWinSvc update"
+      $INFOTEXT -u "Updating windows helper service on all windows hosts:"
+      DoRemoteActionForHosts "$list" $ADMINUSER "$cmd"
+   fi
+   
+   if [ "$REMOVE_RC" = true ]; then                    #REMOVE OLD RCs
+      cmd="$rc_cmd RemoveRcScript $HOST $type $euid $version"
+      $INFOTEXT -u "Removing all $type $version startup scripts:"
+      DoRemoteActionForHosts "$list" default "$cmd"
+   fi
+   
+   if [ "$ADD_RC" = true ]; then                              #ADD NEW RCs
+      cmd="$rc_cmd ADD_TO_RC=true; export ADD_TO_RC ; SetupRcScriptNames $type && InstallRcScript"
+      $INFOTEXT -u "Creating new startup scripts for all $type hosts:"
+      DoRemoteActionForHosts "$list" default "$cmd"
+   fi
+}
+
+RemoteExecSpoolDirDelete() 
+{
+   BasicSettings
+   SetUpInfoText
+   GetAdminUser
+   global_dir=`qconf -sconf 2>&1 | grep execd_spool_dir | awk '{ print $2}'`
+   local_dir=`qconf -sconf $HOST 2>&1 | grep execd_spool_dir | awk '{ print $2}'` 
+   if [ -z "$local_dir" ]; then 
+      local_dir=$global_dir
+   fi
+   if [ -d "$local_dir/$HOST" ]; then
+      Removedir "$local_dir/$HOST"
+   elif [ ! -d "$local_dir" ]; then
+      LOCAL_EXECD_SPOOL=$local_dir
+      . $SGE_ROOT/util/install_modules/inst_execd.sh
+      MakeLocalSpoolDir
+   fi
+}
+
+DeleteQueueNumberAttribute()
+{
+   spooldir="$1"
+   tmpfile="/tmp/clusterqueue_delete$$"
+   Execute rm -f $tmpfile
+
+   # get all queue instance files 
+   queuesdir=`ls $spooldir/qinstances/`
+   
+   # delete the evidence of queue_number for each queue instance file
+   for dir in $queuesdir; do 
+      queueinstancelist=`ls $spooldir/qinstances/$dir` 
+      for file in $queueinstancelist; do 
+         # delete line beginning with "queue_number"
+         ExecuteAsAdmin sed "/^queue_number/d" $spooldir/qinstances/$dir/$file > $tmpfile
+         Execute chown $ADMINUSER $tmpfile
+         ExecuteAsAdmin mv $tmpfile $spooldir/qinstances/$dir/$file
+         ExecuteAsAdmin $CHMOD 644 $spooldir/qinstances/$dir/$file
+      done 
+   done
+}
+

@@ -1,16 +1,18 @@
-# $Id: Makefile,v 1.1 2008/11/30 19:32:49 anoop Exp $
+# $Id: Makefile,v 1.2 2009/04/22 01:30:41 anoop Exp $
 #
 # @Copyright@
 # @Copyright@
 #
 # $Log: Makefile,v $
+# Revision 1.2  2009/04/22 01:30:41  anoop
+# Upgraded SGE for Solaris to match Linux version
+#
 # Revision 1.1  2008/11/30 19:32:49  anoop
 # Added support for SGE on Solaris
 #
 #
 
 PKGROOT	= /opt/gridengine
-ROCKSROOT = ../../../../..
 REDHAT.ROOT = $(CURDIR)/../..
 -include $(ROCKSROOT)/etc/Rules.mk
 include Rules.mk

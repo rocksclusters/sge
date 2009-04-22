@@ -86,28 +86,18 @@ GetCell()
       $CLEAR
       $INFOTEXT -u "\nGrid Engine cells"
       if [ "$SGE_CELL" = "" ]; then
-         $INFOTEXT -n "\nGrid Engine supports multiple cells.\n\n" \
-                      "If you are not planning to run multiple Grid Engine clusters or if you don't\n" \
-                      "know yet what is a Grid Engine cell it is safe to keep the default cell name\n\n" \
-                      "   default\n\n" \
-                      "If you want to install multiple cells you can enter a cell name now.\n\n" \
-                      "The environment variable\n\n" \
-                      "   \$SGE_CELL=<your_cell_name>\n\n" \
-                      "will be set for all further Grid Engine commands.\n\n" \
-                      "Enter cell name [default] >> "
-         INP=`Enter default`
-      else
-         $INFOTEXT -n "\nGrid Engine supports multiple cells.\n\n" \
-                      "If you are not planning to run multiple Grid Engine clusters or if you don't\n" \
-                      "know yet what is a Grid Engine cell it is safe to keep the default cell name\n\n" \
-                      "   default\n\n" \
-                      "If you want to install multiple cells you can enter a cell name now.\n\n" \
-                      "The environment variable\n\n" \
-                      "   \$SGE_CELL=<your_cell_name>\n\n" \
-                      "will be set for all further Grid Engine commands.\n\n" \
-                      "Enter cell name [%s] >> " $SGE_CELL
-         INP=`Enter $SGE_CELL`
+         SGE_CELL=default
       fi
+      $INFOTEXT -n "\nGrid Engine supports multiple cells.\n\n" \
+                   "If you are not planning to run multiple Grid Engine clusters or if you don't\n" \
+                   "know yet what is a Grid Engine cell it is safe to keep the default cell name\n\n" \
+                   "   default\n\n" \
+                   "If you want to install multiple cells you can enter a cell name now.\n\n" \
+                   "The environment variable\n\n" \
+                   "   \$SGE_CELL=<your_cell_name>\n\n" \
+                   "will be set for all further Grid Engine commands.\n\n" \
+                   "Enter cell name [%s] >> " $SGE_CELL
+      INP=`Enter $SGE_CELL`
       eval SGE_CELL=$INP
       SGE_CELL_VAL=`eval echo $SGE_CELL`
       if [ "$QMASTER" = "install" ]; then
@@ -118,24 +108,43 @@ GetCell()
             if [ $? = 0 ]; then
                is_done="false"
             else
-               $INFOTEXT -n "You can overwrite or delete this directory. If you choose overwrite\n" \
-                            "(YES option) only the \"bootstrap\" file will be deleted).\n" \
-                            "Delete (NO option) - will delete the whole directory!\n"
-               $INFOTEXT -auto $AUTO -ask "y" "n" -def "y" -n "Do you want to overwrite [y] or delete [n] the directory? (y/n) [y] >> "
-               if [ $? = 0 ]; then
-                  $INFOTEXT "Deleting bootstrap file!"
-                  ExecuteAsAdmin rm -f $SGE_ROOT/$SGE_CELL_VAL/common/bootstrap
-                  is_done="true"
-                  Overwrite="true"
+               with_bdb=0
+               if [ ! -f $SGE_ROOT/$SGE_CELL/common/bootstrap -a -f $SGE_ROOT/$SGE_CELL/common/sgebdb ]; then
+                  $INFOTEXT -n "Do you want to keep this directory? Choose\n" \
+                               "(YES option) - if you have installed BDB server.\n" \
+                               "(NO option)  - to delete the whole directory!\n"
+                  $INFOTEXT -auto $AUTO -ask "y" "n" -def "y" -n "Do you want to keep [y] or delete [n] the directory? (y/n) [y] >> "
+                  with_bdb=1
                else
-                  $INFOTEXT "Deleting directory \"%s\" now!" $SGE_ROOT/$SGE_CELL_VAL
-                  ExecuteAsAdmin rm -rf $SGE_ROOT/$SGE_CELL_VAL
-                  is_done="true"
+                  $INFOTEXT -n "You can overwrite or delete this directory. If you choose overwrite\n" \
+                               "(YES option) only the \"bootstrap\" and \"cluster_name\" files will be deleted).\n" \
+                               "Delete (NO option) - will delete the whole directory!\n"
+                  $INFOTEXT -auto $AUTO -ask "y" "n" -def "y" -n "Do you want to overwrite [y] or delete [n] the directory? (y/n) [y] >> "
                fi
+               sel_ret=$?
+               SearchForExistingInstallations "qmaster shadowd execd dbwriter"
+               if [ $sel_ret = 0 -a $with_bdb = 0 ]; then
+                  $INFOTEXT "Deleting bootstrap and cluster_name files!"
+                  ExecuteAsAdmin rm -f $SGE_ROOT/$SGE_CELL_VAL/common/bootstrap
+                  ExecuteAsAdmin rm -f $SGE_ROOT/$SGE_CELL_VAL/common/cluster_name                  
+               elif [ $sel_ret -ne 0 ]; then
+                  $INFOTEXT "Deleting directory \"%s\" now!" $SGE_ROOT/$SGE_CELL_VAL
+                  Removedir $SGE_ROOT/$SGE_CELL_VAL
+               fi
+               if [ $sel_ret = 0 ]; then
+                  Overwrite="true"
+               fi
+               is_done="true"
             fi
          else
             is_done="true"
          fi
+      elif [ "$BERKELEY" = "install" ]; then
+         SearchForExistingInstallations "bdb"
+         is_done="true"
+      elif [ "$DBWRITER" = "install" ]; then
+         SearchForExistingInstallations "dbwriter"
+         is_done="true"
       else
          is_done="true"
       fi
@@ -317,6 +326,9 @@ SetPermissions()
    $CLEAR
 }
 
+
+#SetSpoolingOptionsBerkeleyDB()
+# $1 - new default spool_dir or BDB server
 SetSpoolingOptionsBerkeleyDB()
 {
    SPOOLING_METHOD=berkeleydb
@@ -386,7 +398,9 @@ SetSpoolingOptionsBerkeleyDB()
       fi
 
       if [ $is_server = "true" ]; then
-         SpoolingQueryChange
+         db_server_host=`echo "$1" | awk -F: '{print $1}'`
+         db_server_spool_dir=`echo "$1" | awk -F: '{print $2}'`
+         SpoolingQueryChange "$db_server_host" "$db_server_spool_dir"
       else
          done="false"
          is_spool="false"
@@ -404,8 +418,7 @@ SetSpoolingOptionsBerkeleyDB()
                fi
  
                if [ $ret = 0 ]; then
-                     RM="rm -r"
-                     ExecuteAsAdmin $RM $SPOOLING_DIR
+                     Removedir $SPOOLING_DIR
                      if [ -d $SPOOLING_DIR ]; then
                         $INFOTEXT "You are not the owner of this directory. You can't delete it!"
                      else
@@ -450,7 +463,7 @@ SetSpoolingOptionsBerkeleyDB()
          if [ "$AUTO" = "true" ]; then
                if [ $SPOOLING_SERVER = "none" ]; then
                   $ECHO
-                  ExecuteAsAdmin $MKDIR $SPOOLING_DIR
+                  Makedir $SPOOLING_DIR
                   SPOOLING_ARGS="$SPOOLING_DIR"
                else
                   $INFOTEXT -log "We found a running berkeley db server on this host!"
@@ -507,7 +520,7 @@ SetSpoolingOptionsBerkeleyDB()
 
    if [ "$SPOOLING_SERVER" = "none" ]; then
       $ECHO
-      ExecuteAsAdmin $MKDIR $SPOOLING_DIR
+      Makedir $SPOOLING_DIR
       SPOOLING_ARGS="$SPOOLING_DIR"
    else
       SPOOLING_ARGS="$SPOOLING_SERVER:`basename $SPOOLING_DIR`"
@@ -521,8 +534,14 @@ SetSpoolingOptionsClassic()
    SPOOLING_ARGS="$SGE_ROOT_VAL/$COMMONDIR;$QMDIR"
 }
 
+# $1 - spooling method
+# $2 - suggested spooling params from the backup
 SetSpoolingOptionsDynamic()
 {
+   suggested_method=$1
+   if [ -z "$suggested_method" ]; then
+      suggested_method=berkeleydb
+   fi
    if [ "$AUTO" = "true" ]; then
       if [ "$SPOOLING_METHOD" != "berkeleydb" -a "$SPOOLING_METHOD" != "classic" ]; then
          SPOOLING_METHOD="berkeleydb"
@@ -534,8 +553,8 @@ SetSpoolingOptionsDynamic()
          $INFOTEXT -n "Your SGE binaries are compiled to link the spooling libraries\n" \
                       "during runtime (dynamically). So you can choose between Berkeley DB \n" \
                       "spooling and Classic spooling method."
-         $INFOTEXT -n "\nPlease choose a spooling method (berkeleydb|classic) [berkeleydb] >> "
-         SPOOLING_METHOD=`Enter berkeleydb`
+         $INFOTEXT -n "\nPlease choose a spooling method (berkeleydb|classic) [%s] >> " "$suggested_method"
+         SPOOLING_METHOD=`Enter $suggested_method`
       fi
    fi
 
@@ -546,7 +565,7 @@ SetSpoolingOptionsDynamic()
          SetSpoolingOptionsClassic
          ;;
       berkeleydb)
-         SetSpoolingOptionsBerkeleyDB
+         SetSpoolingOptionsBerkeleyDB $2
          ;;
       *)
          $INFOTEXT "\nUnknown spooling method. Exit."
@@ -559,7 +578,7 @@ SetSpoolingOptionsDynamic()
 
 #--------------------------------------------------------------------------
 # SetSpoolingOptions sets / queries options for the spooling framework
-#
+# $1 - suggested spooling params form teh old bootstrap file
 SetSpoolingOptions()
 {
    $INFOTEXT -u "\nSetup spooling"
@@ -570,10 +589,10 @@ SetSpoolingOptions()
          SetSpoolingOptionsClassic
          ;;
       berkeleydb)
-         SetSpoolingOptionsBerkeleyDB
+         SetSpoolingOptionsBerkeleyDB $1
          ;;
       dynamic)
-         SetSpoolingOptionsDynamic
+         SetSpoolingOptionsDynamic $1
          ;;
       *)
          $INFOTEXT "\nUnknown spooling method. Exit."
@@ -725,6 +744,14 @@ PrintBootstrap()
    $ECHO "binary_path             $SGE_ROOT_VAL/bin"
    $ECHO "qmaster_spool_dir       $QMDIR"
    $ECHO "security_mode           $PRODUCT_MODE"
+   $ECHO "listener_threads        2"
+   $ECHO "worker_threads          2"
+   $ECHO "scheduler_threads       1"
+   if [ "$SGE_ENABLE_JMX" = "true" ]; then
+      $ECHO "jvm_threads             1"
+   else
+      $ECHO "jvm_threads             0"
+   fi
 }
 
 
@@ -744,17 +771,19 @@ InitSpoolingDatabase()
 
 #-------------------------------------------------------------------------
 # AddConfiguration
-#
+# optional args for GetConfigutration
+# $1 - default CFG_EXE_SPOOL
+# $2 - default CFG_MAIL_ADDR
 AddConfiguration()
 {
    useold=false
 
    if [ $useold = false ]; then
-      GetConfiguration
+      GetConfiguration "$@"
       #TruncCreateAndMakeWriteable $COMMONDIR/configuration
       #PrintConf >> $COMMONDIR/configuration
       #SetPerm $COMMONDIR/configuration
-      TMPC=/tmp/configuration
+      TMPC=/tmp/configuration_`date '+%Y-%m-%d_%H:%M:%S'`
       TOUCH=touch
       rm -f $TMPC
       ExecuteAsAdmin $TOUCH $TMPC
@@ -776,6 +805,8 @@ PrintConf()
    $ECHO "#"
    $ECHO "conf_version           0"
    $ECHO "execd_spool_dir        $CFG_EXE_SPOOL"
+   $ECHO "mailer                 $MAILER"
+   $ECHO "xterm                  $XTERM"
    $ECHO "load_sensor            none"
    $ECHO "prolog                 none"
    $ECHO "epilog                 none"
@@ -816,18 +847,30 @@ PrintConf()
    $ECHO "finished_jobs          100"
    $ECHO "gid_range              $CFG_GID_RANGE"
    $ECHO "qlogin_command         $QLOGIN_COMMAND"
-   $ECHO "rsh_command            $RSH_COMMAND"
-   $ECHO "rlogin_command         $RLOGIN_COMMAND"
+   if [ "$RLOGIN_COMMAND" != "undef" ]; then
+      $ECHO "rlogin_command         $RLOGIN_COMMAND"
+   fi
+   if [ "$RSH_COMMAND" != "undef" ]; then
+      $ECHO "rsh_command            $RSH_COMMAND"
+   fi
    $ECHO "max_aj_instances       2000"
    $ECHO "max_aj_tasks           75000"
    $ECHO "max_u_jobs             0"
    $ECHO "max_jobs               0"
+   $ECHO "max_advance_reservations 0"
    $ECHO "auto_user_oticket      0"
    $ECHO "auto_user_fshare       0"
    $ECHO "auto_user_default_project none"
    $ECHO "auto_user_delete_time  86400"
    $ECHO "delegated_file_staging false"
    $ECHO "reprioritize           0"
+   $ECHO "jsv_url                none"
+   if [ "$SGE_JVM_LIB_PATH" != "" ]; then
+      $ECHO "libjvm_path            $SGE_JVM_LIB_PATH"
+   fi
+   if [ "$SGE_ADDITIONAL_JVM_ARGS" != "" ]; then
+      $ECHO "additional_jvm_args            $SGE_ADDITIONAL_JVM_ARGS"
+   fi
 }
 
 
@@ -844,14 +887,16 @@ AddLocalConfiguration()
       ExecuteAsAdmin rm -f $TMPH
       ExecuteAsAdmin touch $TMPH
       PrintLocalConf 1 >> $TMPH
-      ExecuteAsAdmin $SPOOLDEFAULTS local_conf $TMPH $HOST 2>/dev/null >/dev/null
+      ExecuteAsAdmin $SPOOLDEFAULTS local_conf $TMPH $HOST
       ExecuteAsAdmin rm -rf /tmp/$$
 }
 
 
 #-------------------------------------------------------------------------
 # GetConfiguration: get some parameters for global configuration
-#
+# args are optional
+# $1 - default CFG_EXE_SPOOL
+# $2 - default CFG_MAIL_ADDR
 GetConfiguration()
 {
 
@@ -885,24 +930,34 @@ GetConfiguration()
             $INFOTEXT "The pathname of the spool directory of the execution hosts. You\n" \
                       "must have the right to create this directory and to write into it.\n"
       fi
+      
+      if [ -z "$1" ]; then
+         default_value=$SGE_ROOT_VAL/$SGE_CELL_VAL/spool
+      else
+         default_value="$1"
+      fi
 
-      $INFOTEXT -n "Default: [%s] >> " $SGE_ROOT_VAL/$SGE_CELL_VAL/spool
+      $INFOTEXT -n "Default: [%s] >> " $default_value
 
-      CFG_EXE_SPOOL=`Enter $SGE_ROOT_VAL/$SGE_CELL_VAL/spool`
+      CFG_EXE_SPOOL=`Enter $default_value`
 
       $CLEAR
+      if [ -z "$2" ]; then
+         default_value=none
+      else
+         default_value="$2"
+      fi
       $INFOTEXT -u "\nGrid Engine cluster configuration (continued)"
       $INFOTEXT -n "\n<administrator_mail>\n\n" \
                    "The email address of the administrator to whom problem reports are sent.\n\n" \
                    "It's is recommended to configure this parameter. You may use >none<\n" \
                    "if you do not wish to receive administrator mail.\n\n" \
                    "Please enter an email address in the form >user@foo.com<.\n\n" \
-                   "Default: [none] >> "
+                   "Default: [%s] >> " $default_value
 
-      CFG_MAIL_ADDR=`Enter none`
+      CFG_MAIL_ADDR=`Enter $default_value`
 
       $CLEAR
-
       $INFOTEXT "\nThe following parameters for the cluster configuration were configured:\n\n" \
                 "   execd_spool_dir        %s\n" \
                 "   administrator_mail     %s\n" $CFG_EXE_SPOOL $CFG_MAIL_ADDR
@@ -924,6 +979,10 @@ GetConfiguration()
 GetGidRange()
 {
    done=false
+   if [ -z "$GID_RANGE" ]; then
+        GID_RANGE=20000-20100
+   fi
+   
    while [ $done = false ]; do
       $CLEAR
       $INFOTEXT -u "\nGrid Engine group id range"
@@ -941,7 +1000,7 @@ GetGidRange()
                 "on a single host.\n\n" \
                 "You can change at any time the group id range in your cluster configuration.\n"
 
-      $INFOTEXT -n "Please enter a range >> "
+      $INFOTEXT -n "Please enter a range [%s] >> " $GID_RANGE
 
       CFG_GID_RANGE=`Enter $GID_RANGE`
 
@@ -1004,7 +1063,47 @@ AddCommonFiles()
       ExecuteAsAdmin chmod $FILEPERM $COMMONDIR/$f
    done
 
-   unset f
+}
+
+AddJMXFiles() {
+   if [ "$SGE_ENABLE_JMX" = "true" ]; then
+      jmx_dir=$COMMONDIR/jmx
+      ExecuteAsAdmin mkdir -p $jmx_dir
+      
+      $INFOTEXT "Adding >jmx/%s< jmx remote access file" jmxremote.access
+      ExecuteAsAdmin cp util/jmxremote.access $jmx_dir/jmxremote.access
+      ExecuteAsAdmin chmod $FILEPERM $jmx_dir/jmxremote.access
+      
+      $INFOTEXT "Adding >jmx/%s< jmx remote password file" jmxremote.password
+      ExecuteAsAdmin cp util/jmxremote.password $jmx_dir/jmxremote.password
+      ExecuteAsAdmin chmod 600 $jmx_dir/jmxremote.password
+     
+      $INFOTEXT "Adding >jmx/%s< jmx logging configuration" logging.properties
+      ExecuteAsAdmin cp util/logging.properties.template $jmx_dir/logging.properties
+      ExecuteAsAdmin chmod 644 $jmx_dir/logging.properties
+
+      $INFOTEXT "Adding >jmx/%s< java policies configuration" java.policy
+      ExecuteAsAdmin cp util/java.policy.template $jmx_dir/java.policy
+      ExecuteAsAdmin chmod 644 $jmx_dir/java.policy
+
+      $INFOTEXT "Adding >jmx/%s< jaas configuration" jaas.config
+      ExecuteAsAdmin cp util/jaas.config.template $jmx_dir/jaas.config
+      ExecuteAsAdmin chmod 644 $jmx_dir/jaas.config
+
+      ExecuteAsAdmin touch /tmp/management.properties.$$
+      Execute sed -e "s#@@SGE_JMX_PORT@@#$SGE_JMX_PORT#g" \
+                  -e "s#@@SGE_ROOT@@#$SGE_ROOT#g" \
+                  -e "s#@@SGE_CELL@@#$SGE_CELL#g" \
+                  -e "s#@@SGE_JMX_SSL@@#$SGE_JMX_SSL#g" \
+                  -e "s#@@SGE_JMX_SSL_CLIENT@@#$SGE_JMX_SSL_CLIENT#g" \
+                  -e "s#@@SGE_JMX_SSL_KEYSTORE@@#$SGE_JMX_SSL_KEYSTORE#g" \
+                  -e "s#@@SGE_JMX_SSL_KEYSTORE_PW@@#$SGE_JMX_SSL_KEYSTORE_PW#g" \
+                  util/management.properties.template > /tmp/management.properties.$$
+      ExecuteAsAdmin mv /tmp/management.properties.$$ $jmx_dir/management.properties
+      ExecuteAsAdmin chmod $FILEPERM $jmx_dir/management.properties
+      $INFOTEXT "Adding >jmx/%s< jmx configuration" management.properties
+      
+   fi
 }
 
 #-------------------------------------------------------------------------
@@ -1020,18 +1119,10 @@ AddPEFiles()
 
 
 #-------------------------------------------------------------------------
-# AddDefaultDepartement
+# AddDefaultUsersets
 #
-AddDefaultDepartement()
+AddDefaultUsersets()
 {
-      #$INFOTEXT "Adding SGE >defaultdepartment< userset"
-      #ExecuteAsAdmin $CP util/resources/usersets/defaultdepartment $QMDIR/usersets
-      #ExecuteAsAdmin $CHMOD $FILEPERM $QMDIR/usersets/defaultdepartment
-
-      #$INFOTEXT "Adding SGE >deadlineusers< userset"
-      #ExecuteAsAdmin $CP util/resources/usersets/deadlineusers $QMDIR/usersets
-      #ExecuteAsAdmin $CHMOD 644 $QMDIR/usersets/deadlineusers
-
       $INFOTEXT "Adding SGE default usersets"
       ExecuteAsAdmin $SPOOLDEFAULTS usersets $SGE_ROOT_VAL/util/resources/usersets
 }
@@ -1054,6 +1145,16 @@ CreateSettingsFile()
       fi
    fi
 
+   if [ "$execd_service" = "true" ]; then
+      SGE_EXECD_PORT=""
+      export SGE_EXECD_PORT
+   fi
+
+   if [ "$qmaster_service" = "true" ]; then
+      SGE_QMASTER_PORT=""
+      export SGE_QMASTER_PORT
+   fi
+
    ExecuteAsAdmin util/create_settings.sh $SGE_ROOT_VAL/$COMMONDIR
 
    SetPerm $SGE_ROOT_VAL/$COMMONDIR/settings.sh
@@ -1069,12 +1170,14 @@ CreateSettingsFile()
 InitCA()
 {
 
-   if [ "$CSP" = true -o \( "$WINDOWS_SUPPORT" = "true" -a "$WIN_DOMAIN_ACCESS" = "true" \) ]; then
+   if [ "$CSP" = true -o \( "$WINDOWS_SUPPORT" = "true" -a "$WIN_DOMAIN_ACCESS" = "true" \) -o \( "$SGE_ENABLE_JMX" = true -a "$SGE_JMX_SSL" = true \) ]; then
       # Initialize CA, make directories and get DN info
       #
       SGE_CA_CMD=util/sgeCA/sge_ca
+      CATOP_TMP=`grep "CATOP=" util/sgeCA/sge_ca.cnf | awk -F= '{print $2}' 2>/dev/null`
+      eval CATOP_TMP=$CATOP_TMP
       if [ "$AUTO" = "true" ]; then
-         if [ "$CSP_RECREATE" = "true" ]; then
+         if [ "$CSP_RECREATE" != "false" -o ! -f $CATOP_TMP/certs/cert.pem ]; then
             $SGE_CA_CMD -init -days 365 -auto $FILE
             #if [ -f "$CSP_USERFILE" ]; then
             #   $SGE_CA_CMD -usercert $CSP_USERFILE
@@ -1085,6 +1188,25 @@ InitCA()
       fi
 
       #  TODO: CAErrUsage no longer available, error handling ???:w
+
+      if [ "$SGE_JMX_SSL" = true ]; then
+         touch /tmp/pwfile.$$
+         chmod 600 /tmp/pwfile.$$
+         echo "$SGE_JMX_SSL_KEYSTORE_PW" > /tmp/pwfile.$$
+         OUTPUT=`$SGE_CA_CMD -sysks -ksout $SGE_JMX_SSL_KEYSTORE -kspwf /tmp/pwfile.$$ 2>&1`
+         if [ $? != 0 ]; then
+            $INFOTEXT "Error: Cannot create keystore $SGE_JMX_SSL_KEYSTORE\n$OUTPUT"
+	        $INFOTEXT -log "Error: Cannot create keystore $SGE_JMX_SSL_KEYSTORE\n$OUTPUT"
+            ret=1
+         else
+            ret=0
+         fi
+         rm /tmp/pwfile.$$
+         if [ $ret = 1 ]; then
+            MoveLog
+            exit 1
+         fi
+      fi
       
       $INFOTEXT -auto $AUTO -wait -n "Hit <RETURN> to continue >> "
       $CLEAR
@@ -1097,10 +1219,26 @@ InitCA()
 #
 StartQmaster()
 {
-   $INFOTEXT -u "\nGrid Engine qmaster and scheduler startup"
-   $INFOTEXT "\nStarting qmaster and scheduler daemon. Please wait ..."
-   $SGE_STARTUP_FILE -qmaster
+   $INFOTEXT -u "\nGrid Engine qmaster startup"
+   $INFOTEXT "\nStarting qmaster daemon. Please wait ..."
 
+   if [ "$SGE_ENABLE_SMF" = "true" ]; then
+      $SVCADM enable -s "svc:/application/sge/qmaster:$SGE_CLUSTER_NAME"
+      if [ $? -ne 0 ]; then
+         $INFOTEXT "\nFailed to start qmaster deamon over SMF. Check service by issuing "\
+                   "svcs -l svc:/application/sge/qmaster:%s" $SGE_CLUSTER_NAME
+         $INFOTEXT -log "\nFailed to start qmaster deamon over SMF. Check service by issuing "\
+                        "svcs -l svc:/application/sge/qmaster:%s" $SGE_CLUSTER_NAME
+         if [ $AUTO = true ]; then
+            MoveLog
+         fi
+         exit 1
+      fi
+   else
+      $SGE_STARTUP_FILE -qmaster
+   fi
+   # wait till qmaster.pid file is written
+   sleep 1
    CheckRunningDaemon sge_qmaster
    run=$?
    if [ $run -ne 0 ]; then
@@ -1240,20 +1378,31 @@ AddHosts()
       if [ -f $TMPL -o -f $TMPL2 ]; then
          $INFOTEXT "\nCan't delete template files >%s< or >%s<" "$TMPL" "$TMPL2"
       else
-         PrintHostGroup @allhosts > $TMPL
-         Execute $SGE_BIN/qconf -Ahgrp $TMPL
-         Execute $SGE_BIN/qconf -sq > $TMPL
-         Execute sed -e "/qname/s/template/all.q/" \
-                     -e "/hostlist/s/NONE/@allhosts/" \
-                     -e "/pe_list/s/NONE/make/" $TMPL > $TMPL2
-         Execute $SGE_BIN/qconf -Aq $TMPL2
+		   #Issue if old qmaster is running, new installation succeeds, but in fact the old qmaster is still running!
+		   #Reinstall can cause, that these already exist. So we skip them if they already exist.
+		   if [ x`$SGE_BIN/qconf -shgrpl 2>/dev/null | grep '^@allhosts$'` = x ]; then
+            PrintHostGroup @allhosts > $TMPL
+            Execute $SGE_BIN/qconf -Ahgrp $TMPL
+			else
+			   $INFOTEXT "Skipping creation of <allhosts> hostgroup as it already exists"
+				$INFOTEXT -log "Skipping creation of <allhosts> hostgroup as it already exists"
+			fi
+			if [ x`$SGE_BIN/qconf -sql 2>/dev/null | grep '^all.q$'` = x ]; then
+            Execute $SGE_BIN/qconf -sq > $TMPL
+            Execute sed -e "/qname/s/template/all.q/" \
+                        -e "/hostlist/s/NONE/@allhosts/" \
+                        -e "/pe_list/s/NONE/make/" $TMPL > $TMPL2
+            Execute $SGE_BIN/qconf -Aq $TMPL2
+			else
+			   $INFOTEXT "Skipping creation of <all.q> queue as it already exists"
+				$INFOTEXT -log "Skipping creation of <all.q> queue  as it already exists"
+			fi
          rm -f $TMPL $TMPL2        
       fi
 
       $INFOTEXT -wait -auto $AUTO -n "\nHit <RETURN> to continue >> "
+      $CLEAR
    fi
-   $CLEAR
-
 }
 
 
@@ -1466,6 +1615,7 @@ GetQmasterPort()
          $INFOTEXT "\nUsing the service\n\n" \
                    "   sge_qmaster\n\n" \
                    "for communication with Grid Engine.\n"
+         qmaster_service="true"
       fi
       $INFOTEXT -wait -auto $AUTO -n "Hit <RETURN> to continue >> "
       $CLEAR
@@ -1578,24 +1728,30 @@ EnterAndValidatePortNumber()
 {
    $INFOTEXT -u "\nGrid Engine TCP/IP service >%s<\n" $service_name
    $INFOTEXT -n "\n" 
-   $INFOTEXT -n "Please enter an unused port number >> "
+
+   port_ok="false"
 
    if [ "$1" = "sge_qmaster" ]; then
+      $INFOTEXT -n "Please enter an unused port number >> "
       INP=`Enter $SGE_QMASTER_PORT`
    else
-      INP=`Enter $SGE_EXECD_PORT`
-
-      if [ "$INP" = "$SGE_QMASTER_PORT" -a $service_name = "sge_execd" ]; then
-         $INFOTEXT "Please use any other port number!!!"
-         $INFOTEXT "This %s port number is used by sge_qmaster" $SGE_QMASTER_PORT
-         if [ $AUTO = "true" ]; then
-            $INFOTEXT -log "Please use any other port number!!!"
-            $INFOTEXT -log "This %s port number is used by sge_qmaster" $SGE_QMASTER_PORT
-            $INFOTEXT -log "Installation failed!!!"
-            MoveLog
-            exit 1
+      while [ $port_ok = "false" ]; do 
+         $INFOTEXT -n "Please enter an unused port number >> "
+         INP=`Enter $SGE_EXECD_PORT`
+         port_ok="true"
+         if [ "$INP" = "$SGE_QMASTER_PORT" -a $1 = "sge_execd" ]; then
+            $INFOTEXT "\nPlease use any other port number!"
+            $INFOTEXT "Port number %s is already used by sge_qmaster\n" $SGE_QMASTER_PORT
+            port_ok="false"
+            if [ $AUTO = "true" ]; then
+               $INFOTEXT -log "Please use any other port number!"
+               $INFOTEXT -log "Port number %s is already used by sge_qmaster" $SGE_QMASTER_PORT
+               $INFOTEXT -log "Installation failed!!!"
+               MoveLog
+               exit 1
+            fi
          fi
-      fi
+      done
    fi
 
    chars=`echo $INP | wc -c`
@@ -1619,6 +1775,330 @@ EnterAndValidatePortNumber()
    if [ $done = false ]; then
       $INFOTEXT -wait -auto $AUTO -n "Hit <RETURN> to continue >> "
    fi
+}
+
+
+########################################################
+#
+# Version to convert a version string in X.Y.Z-* or
+# X.Y.X_NN format to XYZNN format so can be treated as a
+# number.
+#
+# $1 = version string
+# Returns numerical version
+#
+########################################################
+JavaVersionString2Num () {
+
+   # Minor and micro default to 0 if not specified.
+   major=`echo $1 | awk -F. '{print $1}'`
+   minor=`echo $1 | awk -F. '{print $2}'`
+   if [ ! -n "$minor" ]; then
+      minor="0"
+   fi
+   micro=`echo $1 | awk -F. '{print $3}'`
+   if [ ! -n "$micro" ]; then
+      micro="0"
+   fi
+
+   # The micro version may further be extended to include a patch number.
+   # This is typically of the form <micro>_NN, where NN is the 2-digit
+   # patch number.  However it can also be of the form <micro>-XX, where
+   # XX is some arbitrary non-digit sequence (eg., "rc").  This latter
+   # form is typically used for internal-only release candidates or
+   # development builds.
+   #
+   # For these internal builds, we drop the -XX and assume a patch number 
+   # of "00".  Otherwise, we extract that patch number.
+   #
+   patch="00"
+   dash=`echo $micro | grep "-"`
+   if [ $? -eq 0 ]; then
+      # Must be internal build, so drop the trailing variant.
+      micro=`echo $micro | awk -F- '{print $1}'`
+   fi
+
+   underscore=`echo $micro | grep "_"`
+   if [ $? -eq 0 ]; then
+      # Extract the seperate micro and patch numbers, ignoring anything
+      # after the 2-digit patch.
+      patch=`echo $micro | awk -F_ '{print substr($2, 1, 2)}'`
+      micro=`echo $micro | awk -F_ '{print $1}'`
+   fi
+
+   echo "${major}${minor}${micro}${patch}"
+
+} # versionString2Num
+
+
+#---------------------------------------------------------------------------
+#  SetLibJvmPath
+#
+#     sets the env variable SGE_JVM_LIB_PATH
+SetLibJvmPath() {
+   
+   MIN_JAVA_VERSION=1.5.0
+   NUM_MIN_JAVA_VERSION=`JavaVersionString2Num $MIN_JAVA_VERSION`
+   
+   if [ "$JAVA_HOME" != "" ]; then
+      java_home=$JAVA_HOME
+   else
+      java_home=/usr/java
+   fi
+   
+   # set JRE_HOME 
+   isdone=false
+   while [ $isdone != true ]; do
+      $INFOTEXT -n "Please enter JAVA_HOME or press enter [%s] >> " "$java_home"
+      INP=`Enter $java_home`
+      if [ ! -x $INP/bin/java ]; then
+         $INFOTEXT "\nInvalid input. Must be a valid JAVA_HOME path."
+      else
+         java_home=$INP
+         isdone=true
+      fi
+   done
+   
+   if [ -d $java_home/jre ]; then
+      java_home=$java_home/jre
+   fi
+
+   JAVA_VERSION=`$java_home/bin/java -version 2>&1 | head -1`
+   JAVA_VERSION=`echo $JAVA_VERSION | awk '{print $3}' | sed -e "s/\"//g"`
+   NUM_JAVA_VERSION=`JavaVersionString2Num $JAVA_VERSION`
+   
+   if [ $NUM_JAVA_VERSION -lt $NUM_MIN_JAVA_VERSION ]; then
+      $INFOTEXT "Warning: Cannot start jvm thread: Invalid java version (%s)), we need %s or higher" $JAVA_VERSION $MIN_JAVA_VERSION
+      return 1
+   fi
+   
+   case $ARCH in
+      sol-sparc64) 
+         jvm_lib_path=$java_home/lib/sparcv9/server/libjvm.so
+         ;;
+      sol-amd64)   
+         jvm_lib_path=$java_home/lib/amd64/server/libjvm.so
+         ;;
+      sol-x86)     
+         #causes a SEGV of libjvm.so for JVM_RawMonitorCreate
+         #jvm_lib_path=$java_home/lib/i386/server/libjvm.so
+         jvm_lib_path=$java_home/lib/i386/client/libjvm.so
+         ;;
+      lx*-amd64)   
+         jvm_lib_path=$java_home/lib/amd64/server/libjvm.so
+         ;;
+      lx*-x86)     
+         jvm_lib_path=$java_home/lib/i386/server/libjvm.so
+         ;;
+      darwin-ppc)
+         jvm_lib_path=$java_home/../Libraries/libjvm.dylib
+         ;;
+      darwin-x86)  
+         jvm_lib_path=$java_home/../Libraries/libjvm.dylib
+         ;;
+      *) 
+         $INFOTEXT "Warning: Cannot start jvm thread: Have no java support for $ARCH"
+         return 1
+         ;;
+   esac
+   
+   if [ ! -f "$jvm_lib_path" ]; then
+      jvm_lib_path=""
+      $INFOTEXT -log "\nWarning: Cannot start jvm thread: jvm library %s not found" "$jvm_lib_path"
+      return 1
+   fi
+   if [ "$JAVA_HOME" = "" ]; then
+      JAVA_HOME=$java_home
+   fi
+   export jvm_lib_path JAVA_HOME
+   return 0
+}
+
+#---------------------------------------------------------------------------
+#  GetJMXPort
+#
+#     sets the env variable SGE_LIBJVM_PATH, SGE_ADDITIONAL_JVM_ARGS, SGE_JMX_PORT
+#
+GetJMXPort() {
+
+   if [ "$SGE_ENABLE_JMX" = "true" ]; then
+
+      $INFOTEXT -u "\nGrid Engine JMX MBean server"
+
+      jmx_port_min=1
+      jmx_port_max=65500
+
+      if [ $AUTO = "true" ]; then
+
+            if [ ! -f "$SGE_JVM_LIB_PATH" ]; then
+               $INFOTEXT -log "\nWarning: Cannot start jvm thread: jvm library %s not found" "$SGE_JVM_LIB_PATH"
+               MoveLog
+               exit 1
+            else   
+               $INFOTEXT -log "\nUsing jvm library >%s<" "$SGE_JVM_LIB_PATH"
+            fi
+
+            if [ "$SGE_JMX_PORT" != "" ]; then
+               if [ $SGE_JMX_PORT -ge $jmx_port_min -a $SGE_JMX_PORT -le $jmx_port_max ]; then
+                  $INFOTEXT -log "Using SGE_JMX_PORT >%s<." $SGE_JMX_PORT
+               else
+                  $INFOTEXT -log "Your \$SGE_JMX_PORT=%s\n\n" \
+                            "has an invalid value (it must be in range %s..%s).\n\n" \
+                            "Please check your configuration file and restart\n" \
+                            "the installation or configure the service >sge_qmaster<." $SGE_JMX_PORT $jmx_port_min $jmx_port_max
+                  MoveLog
+                  exit 1
+               fi
+            fi
+
+            # if not set initialize to false
+            if [ "$SGE_JMX_SSL" = "" ]; then
+               SGE_JMX_SSL=false
+            fi
+            if [ "$SGE_JMX_SSL_CLIENT" = "" ]; then
+               SGE_JMX_SSL_CLIENT=false
+            fi
+      else
+
+         # interactive setup
+
+         sge_jvm_lib_path=""
+         sge_jmx_port=""
+         sge_additional_jvm_args="-Xmx256m"
+         sge_jmx_ssl=false
+         sge_jmx_ssl_client=false
+         sge_jxm_ssl_keystore=""
+         alldone=false
+         while [ $alldone = false ]; do
+
+            $INFOTEXT -e "Please give some basic parameters for JMX MBean server\n" \
+            "We will ask for\n" \
+            "   - JAVA_HOME\n" \
+            "   - additional JVM arguments (optional)\n" \
+            "   - JMX MBean server port\n" \
+            "   - JMX ssl authentication\n" \
+            "   - JMX ssl client authentication\n" \
+            "   - JMX ssl server keystore path\n" \
+            "   - JMX ssl server keystore password\n"
+            
+            # set sge_jvm_lib_path
+            SetLibJvmPath
+            sge_jvm_lib_path=$jvm_lib_path
+
+            # set SGE_ADDITIONAL_JVM_ARGS
+            $INFOTEXT -n "Please enter additional JVM arguments (optional, default is [%s]) >> " "$sge_additional_jvm_args"
+            INP=`Enter "$sge_additional_jvm_args"`
+            sge_additional_jvm_args="$INP"
+
+            done=false
+            while [ $done != true ]; do
+               $INFOTEXT -n "Please enter an unused port number for the JMX MBean server >> "
+               INP=`Enter $sge_jmx_port`
+               if [ "$INP" = "" ]; then
+                  $INFOTEXT "\nInvalid input. Must be a number."
+                  continue
+               fi
+               chars=`echo $INP | wc -c`
+               chars=`expr $chars - 1`
+               digits=`expr $INP : "[0-9][0-9]*"`
+               if [ "$chars" != "$digits" ]; then
+                  $INFOTEXT "\nInvalid input. Must be a number."
+               elif [ $INP -lt $jmx_port_min -o $INP -gt $jmx_port_max ]; then
+                  $INFOTEXT "\nInvalid port number. Must be in range [%s..%s]." $jmx_port_min $jmx_port_max
+               elif [ $INP -le 1024 -a $euid != 0 ]; then
+                  $INFOTEXT "\nYou are not user >root<. You need to use a port above 1024."
+               else
+                  done=true
+               fi
+            done
+            sge_jmx_port=$INP
+
+            # set SGE_JMX_SSL
+            $INFOTEXT -n -ask "y" "n" -def "y" \
+               "Enable JMX SSL server authentication (y/n) [y] >> "
+            if [ $? = 0 ]; then
+               sge_jmx_ssl="true"
+            else    
+               sge_jmx_ssl="false"
+            fi   
+
+            if [ "$sge_jmx_ssl" = true ]; then
+               # set SGE_JMX_SSL_CLIENT
+               $INFOTEXT -n -ask "y" "n" -def "y" \
+                  "Enable JMX SSL client authentication (y/n) [y] >> "
+               if [ $? = 0 ]; then
+                  sge_jmx_ssl_client="true"
+               else    
+                  sge_jmx_ssl_client="false"
+               fi   
+
+               # set SGE_JMX_SSL_KEYSTORE
+               if [ "$SGE_QMASTER_PORT" != "" -a "$qmaster_service" = false ]; then
+                  ca_port=port$SGE_QMASTER_PORT
+               else
+                  ca_port=sge_qmaster
+               fi
+               # must be in sync with definitions in sge_ca.cnf
+               euid=`$SGE_UTILBIN/uidgid -euid`
+               if [ $euid = 0 ]; then
+                  CALOCALTOP=/var/sgeCA/$ca_port/$SGE_CELL
+               else
+                  CALOCALTOP=/tmp/sgeCA/$ca_port/$SGE_CELL
+               fi
+               if [ "$sge_jmx_ssl_keystore" = "" ]; then 
+                  sge_jmx_ssl_keystore=$CALOCALTOP/private/keystore
+               fi
+               $INFOTEXT -n "Enter JMX SSL server keystore path [%s] >> " "$sge_jmx_ssl_keystore"
+               INP=`Enter "$sge_jmx_ssl_keystore"`
+               sge_jmx_ssl_keystore="$INP"
+
+               # set SGE_JMX_SSL_KEYSTORE_PW
+               sge_jmx_ssl_keystore_pw=""
+               STTY_ORGMODE=`stty -g`
+               $INFOTEXT -n "Enter JMX SSL server keystore pw >> "
+               stty -echo
+               INP=`Enter "$sge_jmx_ssl_keystore_pw"`
+               sge_jmx_ssl_keystore_pw="$INP"
+               stty "$STTY_ORGMODE"
+               # echo $sge_jmx_ssl_keystore_pw
+
+            fi
+
+            # show all parameters and redo if needed
+            $INFOTEXT "\nUsing the following JMX MBean server settings."
+            $INFOTEXT "   libjvm_path              >%s<" "$sge_jvm_lib_path"
+            $INFOTEXT "   Additional JVM arguments >%s<" "$sge_additional_jvm_args"
+            $INFOTEXT "   JMX port                 >%s<" "$sge_jmx_port"
+            $INFOTEXT "   JMX ssl                  >%s<" "$sge_jmx_ssl"
+            $INFOTEXT "   JMX client ssl           >%s<" "$sge_jmx_ssl_client"
+            $INFOTEXT "   JMX server keystore      >%s<" "$sge_jmx_ssl_keystore"
+            obfuscated_pw=`echo "$sge_jmx_ssl_keystore_pw" | sed 's/./*/g'`
+            $INFOTEXT "   JMX server keystore pw   >%s<" "$obfuscated_pw"
+            $INFOTEXT "\n"
+
+            $INFOTEXT -ask "y" "n" -def "y" -n \
+               "Do you want to use these data (y/n) [y] >> "
+            if [ $? = 0 ]; then
+               alldone=true
+               SGE_JVM_LIB_PATH=$sge_jvm_lib_path
+               SGE_ADDITIONAL_JVM_ARGS=$sge_additional_jvm_args
+               SGE_JMX_PORT=$sge_jmx_port
+               SGE_JMX_SSL=$sge_jmx_ssl
+               SGE_JMX_SSL_CLIENT=$sge_jmx_ssl_client
+               SGE_JMX_SSL_KEYSTORE=$sge_jmx_ssl_keystore
+               SGE_JMX_SSL_KEYSTORE_PW="$sge_jmx_ssl_keystore_pw"
+               export SGE_JVM_LIB_PATH SGE_JMX_PORT SGE_ADDITIONAL_JVM_ARGS SGE_ENABLE_JMX SGE_JMX_SSL SGE_JMX_SSL_CLIENT SGE_JMX_SSL_KEYSTORE SGE_JMX_SSL_KEYSTORE_PW
+            else
+               $CLEAR
+            fi
+         done
+      fi
+
+      $INFOTEXT -wait -auto $AUTO -n "\nHit <RETURN> to continue >> "
+      $CLEAR
+
+   fi
+
 }
 
 
@@ -1690,6 +2170,7 @@ GetExecdPort()
          $INFOTEXT "\nUsing the service\n\n" \
                    "   sge_execd\n\n" \
                    "for communication with Grid Engine.\n"
+         execd_service="true"
       fi
       $INFOTEXT -wait -auto $AUTO -n "Hit <RETURN> to continue >> "
       $CLEAR
@@ -1752,7 +2233,7 @@ SetScheddConfig()
  
    while [ $done = "false" ]; do
       $INFOTEXT -u "Configurations"
-      $INFOTEXT -n "1) Normal\n          Fixed interval scheduling, report scheduling information,\n" \
+      $INFOTEXT -n "1) Normal\n          Fixed interval scheduling, report limited scheduling information,\n" \
                    "          actual + assumed load\n"
       $INFOTEXT -n "2) High\n          Fixed interval scheduling, report limited scheduling information,\n" \
                    "          actual load\n"
