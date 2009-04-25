@@ -1,5 +1,5 @@
 # 
-# $Id: Makefile,v 1.23 2008/11/05 17:24:22 bruno Exp $
+# $Id: Makefile,v 1.24 2009/04/25 03:56:02 bruno Exp $
 #
 # @Copyright@
 # 
@@ -55,6 +55,9 @@
 # @Copyright@
 #
 # $Log: Makefile,v $
+# Revision 1.24  2009/04/25 03:56:02  bruno
+# tweaks
+#
 # Revision 1.23  2008/11/05 17:24:22  bruno
 # fix to build usersguide
 #
@@ -106,7 +109,7 @@
 
 PKGROOT		= /var/www/html/roll-documentation/sge/$(VERSION)
 REDHAT.ROOT	= $(PWD)/../../
-ROCKSROOT	= ../../../../..
+
 -include $(ROCKSROOT)/etc/Rules.mk
 include Rules.mk
 

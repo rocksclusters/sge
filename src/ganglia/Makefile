@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.14 2008/11/30 19:32:48 anoop Exp $
+# $Id: Makefile,v 1.15 2009/04/25 03:56:02 bruno Exp $
 #
 # @Copyright@
 # 
@@ -54,6 +54,9 @@
 # @Copyright@
 #
 # $Log: Makefile,v $
+# Revision 1.15  2009/04/25 03:56:02  bruno
+# tweaks
+#
 # Revision 1.14  2008/11/30 19:32:48  anoop
 # Added support for SGE on Solaris
 #
@@ -110,7 +113,6 @@ PKGROOT = /opt/rocks
 METRICS = $(wildcard metrics/*.py)
 REDHAT.ROOT = $(CURDIR)/../../
 
-ROCKSROOT = ../../../../..
 -include $(ROCKSROOT)/etc/Rules.mk
 include Rules.mk
 -include $(ROCKSROOT)/etc/python.mk
