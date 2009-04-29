@@ -10,6 +10,9 @@
 
 	<changelog>
 	$Log: sge-client.xml,v $
+	Revision 1.18  2009/04/29 20:59:02  bruno
+	one more file needed for SGE configuration
+	
 	Revision 1.17  2008/12/23 02:40:15  mjk
 	- killed itanium conditionals
 	- killed edges from grid roll
@@ -74,11 +77,18 @@ cat /opt/gridengine/default/common/bootstrap
 </eval>
 </file>
 
+<file name="/opt/gridengine/default/common/cluster_name" perms="0444">
+<eval>
+cat /opt/gridengine/default/common/cluster_name
+</eval>
+</file>
+
 <file name="/opt/gridengine/default/common/sgeexecd" perms="0755">
 <eval>
 cat /opt/gridengine/default/common/sgeexecd
 </eval>
 </file>
+
 </post>
 
 <post os="linux">
