@@ -45,19 +45,19 @@
 		grouping='require_all'
 		restart_on='restart'
 		type='path'>
-		<service_fmri value='file://localhost/opt/gridengine/default/spool/qmaster/' />
+		<service_fmri value='file://localhost/opt/gridengine/default/spool/' />
 	</dependency>
 
 	<exec_method
 		type='method'
 		name='start'
-		exec='/lib/svc/method/sgeexecd start'
+		exec='/lib/svc/method/sgeexecd %m'
 		timeout_seconds='60'/>
 
 	<exec_method
 		type='method'
 		name='stop'
-		exec='/lib/svc/method/sgeexecd stop'
+		exec='/lib/svc/method/sgeexecd %m'
 		timeout_seconds='60' />
 
 	<property_group name='startd'
