@@ -10,6 +10,10 @@
 
 	<changelog>
 	$Log: sge-server.xml,v $
+	Revision 1.44  2009/06/04 01:37:26  anoop
+	SGE needs accounting_summary in the parallel environment
+	template
+	
 	Revision 1.43  2009/05/04 20:50:36  bruno
 	more tweaks to sge
 	
@@ -155,6 +159,7 @@ allocation_rule   $fill_up
 control_slaves    FALSE
 job_is_first_task TRUE
 urgency_slots     min
+accounting_summary TRUE
 </file>
 
 <file name="/opt/gridengine/mpi/rocks-mpich.template">
@@ -168,6 +173,7 @@ allocation_rule  $fill_up
 control_slaves   TRUE
 job_is_first_task FALSE
 urgency_slots     min
+accounting_summary TRUE
 </file>
 
 <file name="/opt/gridengine/mpi/rocks-ompi.template">
@@ -180,6 +186,7 @@ stop_proc_args    /bin/true
 allocation_rule   $fill_up
 control_slaves    TRUE
 job_is_first_task FALSE
+accounting_summary TRUE
 urgency_slots     min
 </file>
 
