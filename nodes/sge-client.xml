@@ -10,6 +10,9 @@
 
 	<changelog>
 	$Log: sge-client.xml,v $
+	Revision 1.20  2009/06/15 23:49:46  bruno
+	sge initialization bugs
+	
 	Revision 1.19  2009/06/04 01:38:18  anoop
 	Bug fixes. SGE on Solaris needs correct smf fmri string
 	
@@ -91,10 +94,6 @@ cat /opt/gridengine/default/common/cluster_name
 cat /opt/gridengine/default/common/sgeexecd | \
  sed -e "s%svc:/application/sge/\$name\:\$SGE_CLUSTER_NAME%svc:/network/sge/\$name\:default%g"
 </eval>
-</file>
-
-<file name="/opt/gridengine/util/install_modules/sge_configuration.conf" mode="append">
-SGE_CLUSTER_NAME="&Info_ClusterName;"
 </file>
 
 </post>
