@@ -11,6 +11,9 @@
 
 	<changelog>
 	$Log: sge.xml,v $
+	Revision 1.23  2009/06/17 19:37:17  bruno
+	database-security is dead
+	
 	Revision 1.22  2008/12/23 02:40:14  mjk
 	- killed itanium conditionals
 	- killed edges from grid roll
@@ -79,7 +82,7 @@
 	</edge>
 
 
-	<order head="database-security" tail="sge-server"/>
+	<order head="database-data" tail="sge-server"/>
 
 </graph>
 
