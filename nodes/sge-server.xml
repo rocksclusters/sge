@@ -10,6 +10,9 @@
 
 	<changelog>
 	$Log: sge-server.xml,v $
+	Revision 1.46  2009/06/24 04:46:13  bruno
+	restore roll tweaks
+	
 	Revision 1.45  2009/06/15 23:49:46  bruno
 	sge initialization bugs
 	
@@ -194,7 +197,7 @@ urgency_slots     min
 </file>
 
 
-<file name="/etc/rc.d/rocksconfig.d/post-02-sge-qmaster" perms="0755">
+<file name="/etc/rc.d/rocksconfig.d/post-01-sge-qmaster" perms="0755">
 #!/bin/bash -x
 
 . /etc/profile.d/sge-binaries.sh
@@ -266,8 +269,13 @@ if [ -f /etc/profile.d/globus.sh ]; then
 	(cd $GLOBUS_LOCATION/setup/globus &amp;&amp; rm -f config.cache &amp;&amp; ./setup-globus-job-manager-sge --mpi-pe=mpich)
 fi
 
+#
+# call 'rocks sync config' to ensure all the sge clients are properly set up
+# (in case the restore roll was supplied
+#
+/opt/rocks/bin/rocks sync config
 
-rm /etc/rc.d/rocksconfig.d/post-02-sge-qmaster
+rm /etc/rc.d/rocksconfig.d/post-01-sge-qmaster
 </file>
 
 </post>
