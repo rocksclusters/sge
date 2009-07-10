@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.16 2009/05/01 19:07:22 mjk Exp $
+# $Id: Makefile,v 1.17 2009/07/10 21:03:51 bruno Exp $
 #
 # @Copyright@
 # 
@@ -54,6 +54,9 @@
 # @Copyright@
 #
 # $Log: Makefile,v $
+# Revision 1.17  2009/07/10 21:03:51  bruno
+# add queue metrics back
+#
 # Revision 1.16  2009/05/01 19:07:22  mjk
 # chimi con queso
 #
@@ -111,9 +114,9 @@
 #
 #
 
-
-PKGROOT = /opt/rocks
+PKGROOT = /opt/ganglia
 METRICS = $(wildcard metrics/*.py)
+CONF = $(wildcard metrics/conf.d/*.pyconf)
 REDHAT.ROOT = $(CURDIR)/../../
 
 -include $(ROCKSROOT)/etc/Rules.mk
@@ -125,8 +128,11 @@ include python.mk
 build:
 
 install:: $(SCRIPTS)
-	mkdir -p $(ROOT)/$(PY.ROCKS)/gmon/metrics
-	$(INSTALL) -m0755 $(METRICS) $(ROOT)/$(PY.ROCKS)/gmon/metrics
+	mkdir -p $(ROOT)/$(PKGROOT)/$(LIBARCH)/ganglia/python_modules
+	$(INSTALL) -m 0444 $(METRICS) \
+		$(ROOT)/$(PKGROOT)/$(LIBARCH)/ganglia/python_modules
+	mkdir -p $(ROOT)/$(PKGROOT)/etc/conf.d
+	$(INSTALL) -m 0444 $(CONF) $(ROOT)/$(PKGROOT)/etc/conf.d
 
 clean::
 	rm -f $(SCRIPTS)

@@ -1,13 +1,5 @@
 #!/opt/rocks/bin/python
 #
-# A metric for Greceptor that publishes some SGE 6
-# (Queue system) metrics through Ganglia.
-# For use with Rocks Ganglia addon pages. 
-#
-# Authors:
-#	Federico Sacerdoti 2005
-#	Emir Imamagic 2005
-#
 # @Copyright@
 # 
 # 				Rocks(r)
@@ -62,86 +54,20 @@
 # @Copyright@
 #
 # $Log: sge.py,v $
-# Revision 1.28  2009/05/01 19:07:22  mjk
-# chimi con queso
+# Revision 1.29  2009/07/10 21:03:51  bruno
+# add queue metrics back
 #
-# Revision 1.27  2008/10/18 00:56:14  mjk
-# copyright 5.1
 #
-# Revision 1.26  2008/07/02 20:58:50  bruno
-# one more tweak to get the 'job queue' right
-#
-# Revision 1.25  2008/06/24 19:18:28  bruno
-# fix for getting user submitted jobs into the 'Job Queue' display on the
-# ganglia web browser.
-#
-# also, a fix to correct the number of total slots as reported by SGE.
-#
-# Revision 1.24  2008/03/06 23:41:57  mjk
-# copyright storm on
-#
-# Revision 1.23  2007/06/23 04:04:00  mjk
-# mars hill copyright
-#
-# Revision 1.22  2006/09/18 21:45:50  anoop
-# Small changes to ganglia and SGE roll.
-# sge.py now parses the date in the right format.
-# queue.py does not report a running time if the job not yet started.
-#
-# Revision 1.21  2006/09/11 22:50:16  mjk
-# monkey face copyright
-#
-# Revision 1.20  2006/08/10 00:11:59  mjk
-# 4.2 copyright
-#
-# Revision 1.19  2006/01/16 06:49:14  mjk
-# fix python path for source built foundation python
-#
-# Revision 1.18  2005/10/12 18:10:54  mjk
-# final copyright for 4.1
-#
-# Revision 1.17  2005/10/03 20:58:46  bruno
-# if the sge service is up and running, then self.parser.parse() will
-# throw an exception. an exception will cause greceptor to permantently disable
-# this metric. so, if SGE comes back up in the future, then we still will
-# not get any SGE job info reported through ganglia.
-#
-# this fix catches the exception, so this metric will not be disabled with the
-# SGE service is down.
-#
-# Revision 1.16  2005/09/30 22:53:27  bruno
-# move to foundation
-#
-# Revision 1.15  2005/09/20 22:09:24  bruno
-# updated to foundation
-#
-# included patch from sacerdoti
-#
-# Revision 1.6  2005/09/16 01:04:39  mjk
-# updated copyright
-#
-# Revision 1.5  2005/05/24 21:23:52  mjk
-# update copyright, release is not any closer
-#
-# Revision 1.4  2005/05/24 18:03:34  fds
-# Support for SGE task arrays by Emir Imamagic.
-#
-# Revision 1.3  2005/04/27 19:01:49  fds
-# Monitor for SGE6 queues - xml based. First design.
-#
-# Revision 1.2  2005/03/29 05:07:05  tsailm
-# Cleanup for cvs log tag
-#
-
 
 import os
 import sys
 import time
+import xml.sax
+sys.path.append('/opt/rocks/lib/python2.4/site-packages')
 import gmon.events
 # Our MPD-style name list encoder.
 import gmon.encoder
 import rocks.util
-import xml.sax
 
 
 class Job:
@@ -209,8 +135,7 @@ class Job:
 				(self.e.encode(self.nodes))
 		return value
 		
-		
-		
+
 class Queue:
 	def __init__(self):
 		self.slots = 0
@@ -224,105 +149,6 @@ class Queue:
 			'queue-state': 'P=%d' % self.slots
 			}
 			
-	def __str__(self):
-		return "Queue %s: total slots=%s" % \
-			(self.name, self.slots)
-		
-
-
-class SGE6(gmon.events.Metric):
-	"""Monitors the SGE 6 queues using Ganglia. Has a simple view of 
-	the cluster: a single shared Queue containing all jobs."""
-	
-	# How often we publish (in sec), on average.
-	freq = 30
-	debug = 0
-	
-	def __init__(self, app):
-		# Schedule every few seconds on average.
-		gmon.events.Metric.__init__(self, app, self.freq)
-		self.jobs = {}
-		self.queues = {}
-		self.parser = xml.sax.make_parser()
-		self.handler = QstatHandler()
-		self.parser.setContentHandler(self.handler)
-		
-		
-	def printJobs(self):
-		"Prints a summary of jobs and queues to stdout."
-		
-		print "Jobs"
-		for id,j in self.handler.getJobs().items():
-			print " %s: %s" % (id, j)
-		
-		print "Queues"
-		for q in self.handler.getQueues():
-			print " ", q	
-			
-					
-	def parseLocalFile(self, filename):
-		"For testing, parses a static file of xml."
-		f = open(filename, 'r')
-		self.parser.parse(f)
-		f.close()	
-		self.printJobs()
-		
-
-	def dmax(self):
-		return self.freq * 3
-
-		
-	def schedule(self, sched):
-
-		self.qstat = self.which("qstat")
-
-		if self.qstat and self.qstat.count('gridengine'):
-			gmon.events.Metric.schedule(self, sched)
-			return 1
-		else:
-			self.info("SGE qstat cmds not in our path, exiting.")
-			return 0
-
-
-	def findjobs(self):
-		"Collect info in all jobs in queue."
-
-		self.parser.reset()
-		self.handler.reset()
-		
-		f = os.popen("%s -f -u \* -xml" % (self.qstat))
-
-		try:
-			self.parser.parse(f)
-			self.jobs = self.handler.getJobs()
-			self.queues = self.handler.getQueues()
-		except:
-			pass
-
-		f.close()
-		
-		return
-		
-
-	def run(self):
-		"Publishes global and per-job batch queue state."
-
-		self.findjobs()
-		
-		# Publish current queue state.
-		for q in self.queues:
-			for name, val in q.getState().items():
-				self.publish(name, val, dmax=(self.dmax() * 4))
-
-		# Publish current job info.
-		for jobid, j in self.jobs.items():
-			name = j.getName()
-			value = str(j)
-			
-			#print name, value
-			self.publish(name, value)
-
-
 
 class QstatHandler(rocks.util.ParseXML):
 	"""Knows how to parse XML output from sge6 qstat"""
@@ -374,7 +200,7 @@ class QstatHandler(rocks.util.ParseXML):
 		self.text = ''
 	
 	def endElement_slots_total(self, name):
-		self.thisqueue.slots += (int(self.text) - self.slots_used)
+		self.thisqueue.slots = int(self.text)
 		
 	def startElement_job_list(self, name, attrs):
 		pass
@@ -448,26 +274,78 @@ class Null:
 	def __delattr__(self, name): return self
 		
 
-def initEvents():
-	return SGE6
-	
+def sge_queue_state_handler(name):
+	totalslots = 'P=0'
 
-#
-# Testing code
-#
-if __name__ == "__main__":
-	print "Testing SGE6 ganglia monitor"
-	app = Job()
-	sge = SGE6(app)
-	if len(sys.argv) > 1:
-		xmlfile = sys.argv[1]
-		print "Parsing qstat xml from file %s...\n" % xmlfile
-		sge.parseLocalFile(xmlfile)
-	else:
-		print "Parsing qstat output..."
-		if not sge.schedule(sge):
-			sys.exit(1)
-		sge.run()
-		sge.printJobs()
-		
+	jobs = {}
+	queues = {}
+	parser = xml.sax.make_parser()
+	handler = QstatHandler()
+	parser.setContentHandler(handler)
+
+	#
+	# find jobs
+	#
+	f = os.popen("qstat -f -u \* -xml")
+
+	try:
+		parser.parse(f)
+		jobs = handler.getJobs()
+		queues = handler.getQueues()
+		totalslots = 'P=%d' % handler.thisqueue.slots
+	except:
+		pass
+
+	f.close()
+
+	#
+	# for the job info, make calls to gmetric
+	#
+	for jobid, j in jobs.items():
+		name = j.getName()
+		value = str(j)
+
+		cmd = '/opt/ganglia/bin/gmetric '
+		cmd += '--name="%s" ' % name
+		cmd += '--value="%s" ' % value
+		cmd += '--type="string" '
+		cmd += '--slope=zero '
+		cmd += '--dmax=120 '
+
+		os.system(cmd)
+
+	return totalslots
+
+
+def metric_init(params):
+	global descriptors
+
+	descriptors = []
+
+	d = {
+		'name': 'queue-state',
+		'call_back': sge_queue_state_handler,
+		'time_max': 60,
+		'value_type': 'string',
+		'units': '',
+		'slope': 'zero',
+		'format': '%s',
+		'description': 'SGE Queue State',
+		'groups': 'sge'
+	}
+
+	descriptors.append(d)
+
+	return descriptors
+ 
+def metric_cleanup():
+	'''Clean up the metric module.'''
+	pass
+ 
+#This code is for debugging and unit testing
+if __name__ == '__main__':
+	metric_init(None)
+	for d in descriptors:
+		v = d['call_back'](d['name'])
+		print 'value for %s is %s' % (d['name'],  v)
 
