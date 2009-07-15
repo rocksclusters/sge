@@ -54,6 +54,9 @@
 # @Copyright@
 #
 # $Log: sge.py,v $
+# Revision 1.30  2009/07/15 20:50:19  bruno
+# get the correct CPU (slots) total
+#
 # Revision 1.29  2009/07/10 21:03:51  bruno
 # add queue metrics back
 #
@@ -200,7 +203,7 @@ class QstatHandler(rocks.util.ParseXML):
 		self.text = ''
 	
 	def endElement_slots_total(self, name):
-		self.thisqueue.slots = int(self.text)
+		self.thisqueue.slots += int(self.text)
 		
 	def startElement_job_list(self, name, attrs):
 		pass
