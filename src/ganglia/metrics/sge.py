@@ -54,6 +54,9 @@
 # @Copyright@
 #
 # $Log: sge.py,v $
+# Revision 1.31  2009/07/15 21:12:53  bruno
+# make sure sge environment variables are set before calling qstat
+#
 # Revision 1.30  2009/07/15 20:50:19  bruno
 # get the correct CPU (slots) total
 #
@@ -289,7 +292,7 @@ def sge_queue_state_handler(name):
 	#
 	# find jobs
 	#
-	f = os.popen("qstat -f -u \* -xml")
+	f = os.popen(". /etc/profile.d/sge-binaries.sh && qstat -f -u \* -xml")
 
 	try:
 		parser.parse(f)
