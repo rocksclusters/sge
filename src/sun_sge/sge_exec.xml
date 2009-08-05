@@ -51,13 +51,13 @@
 	<exec_method
 		type='method'
 		name='start'
-		exec='/lib/svc/method/sgeexecd %m'
+		exec='/lib/svc/method/sgeexecd -nosmf %m'
 		timeout_seconds='60'/>
 
 	<exec_method
 		type='method'
 		name='stop'
-		exec='/lib/svc/method/sgeexecd %m'
+		exec='/lib/svc/method/sgeexecd -nosmf %m'
 		timeout_seconds='60' />
 
 	<property_group name='startd'
