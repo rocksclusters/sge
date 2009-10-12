@@ -1,4 +1,4 @@
-# $Id: plugin_sge.py,v 1.4 2009/05/01 19:07:22 mjk Exp $
+# $Id: plugin_sge.py,v 1.5 2009/10/12 18:33:11 bruno Exp $
 # 
 # @Copyright@
 # 
@@ -54,6 +54,10 @@
 # @Copyright@
 #
 # $Log: plugin_sge.py,v $
+# Revision 1.5  2009/10/12 18:33:11  bruno
+# nuke the host's queue while removing a node. thanks to Isaac Wagner for the
+# fix.
+#
 # Revision 1.4  2009/05/01 19:07:22  mjk
 # chimi con queso
 #
@@ -77,10 +81,16 @@ class Plugin(rocks.commands.Plugin):
 		return 'sge'
 
 	def run(self, host):
-		cmd = 'cd /opt/gridengine'
-		cmd += ' && echo "" | ./inst_sge -ux -host %s' % (host)
-		cmd += ' > /dev/null 2>&1'
-		os.system(cmd)
+		#
+		# remove the host from every defined SGE 'host group'
+		#
+		for group in os.popen('qconf -shgrpl').readlines():
+			cmd = 'qconf -dattr hostgroup hostlist '
+			cmd += '%s %s > /dev/null 2>&1' % (host, group)
+			os.system(cmd)
 
-		cmd = 'qconf -dh %s > /dev/null 2>&1' % (host)
-		os.system(cmd)
+		#
+		# remove the host as a SGE 'execution host'
+		#
+		os.system('qconf -de %s > /dev/null 2>&1' % host)
+
