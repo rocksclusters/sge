@@ -10,6 +10,9 @@
 
 	<changelog>
 	$Log: sge-server.xml,v $
+	Revision 1.47  2009/10/27 20:59:31  bruno
+	need to set the hostname in act_qmaster before we call the startup script
+	
 	Revision 1.46  2009/06/24 04:46:13  bruno
 	restore roll tweaks
 	
@@ -216,8 +219,12 @@ cd $SGE_ROOT &amp;&amp; \
 # the act_qmaster file and places the local hostname (not the FQDN) into
 # the file, which causes SGE to not start on the next boot
 #
-echo "/bin/hostname --fqdn > $SGE_ROOT/default/common/act_qmaster" >> \
-	/etc/rc.d/init.d/sgemaster.`hostname -s`
+sed '/^# MAIN Procedure/ a\
+/bin/hostname --fqdn > $SGE_ROOT/default/common/act_qmaster
+' /etc/rc.d/init.d/sgemaster.`hostname -s` > /tmp/sgemaster.`hostname -s`
+
+cp /tmp/sgemaster.`hostname -s` /etc/rc.d/init.d/sgemaster.`hostname -s`
+rm /tmp/sgemaster.`hostname -s`
 
 #
 # modify the configure to handle qrsh, et. al.
