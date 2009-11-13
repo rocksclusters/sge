@@ -54,6 +54,9 @@
 # @Copyright@
 #
 # $Log: sge.py,v $
+# Revision 1.33  2009/11/13 00:33:53  bruno
+# take two on setting the starting time of the job
+#
 # Revision 1.32  2009/11/13 00:06:32  bruno
 # make sure 'started' time is the unix epoch time
 #
@@ -116,7 +119,12 @@ class Job:
 		return "queue-job-%s" % self.id
 		
 	def setStarted(self, s):
-		self.started = int(time.time())
+		# Start time is always kept in seconds.
+		t = time.strptime(s, "%Y-%m-%dT%H:%M:%S")
+		# the '-1' means have the machine guess if we are in
+		# daylight saving time or not
+		t = t[:-1] + (-1,)
+		self.started = time.mktime(t)
 		
 		
 	def setOwner(self, o):
