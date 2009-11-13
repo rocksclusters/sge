@@ -54,6 +54,9 @@
 # @Copyright@
 #
 # $Log: sge.py,v $
+# Revision 1.32  2009/11/13 00:06:32  bruno
+# make sure 'started' time is the unix epoch time
+#
 # Revision 1.31  2009/07/15 21:12:53  bruno
 # make sure sge environment variables are set before calling qstat
 #
@@ -113,11 +116,7 @@ class Job:
 		return "queue-job-%s" % self.id
 		
 	def setStarted(self, s):
-		# Start time is always kept in seconds.
-		t = time.strptime(s, "%Y-%m-%dT%H:%M:%S")
-		# Adjust for daylight savings
-		t = t[:-1] + (time.daylight,)
-		self.started = time.mktime(t)
+		self.started = int(time.time())
 		
 		
 	def setOwner(self, o):
