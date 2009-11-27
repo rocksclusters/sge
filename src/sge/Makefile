@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.39 2009/05/01 19:07:22 mjk Exp $
+# $Id: Makefile,v 1.40 2009/11/27 18:25:00 bruno Exp $
 #
 # @Copyright@
 # 
@@ -55,6 +55,9 @@
 # @Copyright@
 #
 # $Log: Makefile,v $
+# Revision 1.40  2009/11/27 18:25:00  bruno
+# new version
+#
 # Revision 1.39  2009/05/01 19:07:22  mjk
 # chimi con queso
 #
@@ -150,14 +153,14 @@ include Rules.mk
 DISTPATH=`rocks report distro`/rocks-dist/$(ARCH)/RedHat/RPMS
 
 
-build:	prep patch
+build:	prep
 	( cd gridengine/source ; \
 		cp ../../aimk.private . ; \
 		cp ../../build.properties . ; \
 		./aimk -only-depend -no-dump ; \
 		scripts/zerodepend ; \
 		./aimk -no-dump depend ; \
-		./aimk -no-dump -no-jni -no-java ;\
+		./aimk -no-dump ; \
 		./aimk -no-dump -man ; \
 	)
 
