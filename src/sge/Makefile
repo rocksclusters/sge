@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.40 2009/11/27 18:25:00 bruno Exp $
+# $Id: Makefile,v 1.41 2009/12/01 20:28:44 bruno Exp $
 #
 # @Copyright@
 # 
@@ -55,6 +55,9 @@
 # @Copyright@
 #
 # $Log: Makefile,v $
+# Revision 1.41  2009/12/01 20:28:44  bruno
+# still need to patch
+#
 # Revision 1.40  2009/11/27 18:25:00  bruno
 # new version
 #
@@ -153,7 +156,7 @@ include Rules.mk
 DISTPATH=`rocks report distro`/rocks-dist/$(ARCH)/RedHat/RPMS
 
 
-build:	prep
+build:	prep patch
 	( cd gridengine/source ; \
 		cp ../../aimk.private . ; \
 		cp ../../build.properties . ; \
