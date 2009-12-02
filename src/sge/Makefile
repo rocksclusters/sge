@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.41 2009/12/01 20:28:44 bruno Exp $
+# $Id: Makefile,v 1.42 2009/12/02 23:34:58 bruno Exp $
 #
 # @Copyright@
 # 
@@ -55,6 +55,9 @@
 # @Copyright@
 #
 # $Log: Makefile,v $
+# Revision 1.42  2009/12/02 23:34:58  bruno
+# one more time
+#
 # Revision 1.41  2009/12/01 20:28:44  bruno
 # still need to patch
 #
@@ -163,6 +166,7 @@ build:	prep patch
 		./aimk -only-depend -no-dump ; \
 		scripts/zerodepend ; \
 		./aimk -no-dump depend ; \
+		./aimk -no-dump -no-jni -no-java ; \
 		./aimk -no-dump ; \
 		./aimk -no-dump -man ; \
 	)
