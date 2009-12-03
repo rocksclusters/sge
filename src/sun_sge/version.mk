@@ -1,3 +1,3 @@
 NAME	=	ge
 VERSION	=	6.2
-RELEASE	=	u2_1
+RELEASE	=	u4
