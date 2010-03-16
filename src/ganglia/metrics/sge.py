@@ -54,6 +54,9 @@
 # @Copyright@
 #
 # $Log: sge.py,v $
+# Revision 1.34  2010/03/16 18:45:09  bruno
+# fix for correctly counting the number of CPUs an array job uses
+#
 # Revision 1.33  2009/11/13 00:33:53  bruno
 # take two on setting the starting time of the job
 #
@@ -271,7 +274,10 @@ class QstatHandler(rocks.util.ParseXML):
 
 	def endElement_tasks(self,name):
 		task = self.text
-		self.thisjob.id += "." + task
+		#
+		# the line below goofs up the CPU calculations for array jobs
+		#
+		# self.thisjob.id += "." + task
 
 class Null:
 	"""Null objects always and reliably do nothing.
