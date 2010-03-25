@@ -11,6 +11,9 @@
 
 	<changelog>
 	$Log: sge.xml,v $
+	Revision 1.24  2010/03/25 00:31:13  bruno
+	plug sge into the login appliance
+	
 	Revision 1.23  2009/06/17 19:37:17  bruno
 	database-security is dead
 	
@@ -71,6 +74,7 @@
 		<to>sge-base</to>
 		<to arch="i386">sge-globus-gcc32</to>
 		<to arch="x86_64">sge-globus-gcc64</to>
+		<to>login-server</to>
 	</edge>
 
 	<edge from="sge-client">
@@ -82,7 +86,7 @@
 	</edge>
 
 
-	<order head="database-data" tail="sge-server"/>
+	<order head="login-server" tail="sge-server"/>
 
 </graph>
 

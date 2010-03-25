@@ -10,6 +10,9 @@
 
 	<changelog>
 	$Log: sge-server.xml,v $
+	Revision 1.49  2010/03/25 00:31:13  bruno
+	plug sge into the login appliance
+	
 	Revision 1.48  2010/01/21 23:30:00  bruno
 	fixes from the community
 	
@@ -306,6 +309,7 @@ logger -p local0.alert "Rebooting via SGE at `date`"
 </file>
 
 /opt/rocks/bin/rocks set appliance attr compute sge true
+/opt/rocks/bin/rocks set appliance attr login sge true
 
 </post>
 
