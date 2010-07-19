@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #
-# $Id: sge-binaries.sh,v 1.10 2009/05/01 19:07:22 mjk Exp $
+# $Id: sge-binaries.sh,v 1.11 2010/07/19 23:18:28 anoop Exp $
 #
 # @Copyright@
 # 
@@ -58,6 +58,9 @@
 #
 #
 # $Log: sge-binaries.sh,v $
+# Revision 1.11  2010/07/19 23:18:28  anoop
+# Put sge path after others in the PATH variable
+#
 # Revision 1.10  2009/05/01 19:07:22  mjk
 # chimi con queso
 #
@@ -136,7 +139,7 @@ SGE_QMASTER_PORT=536; export SGE_QMASTER_PORT
 SGE_EXECD_PORT=537; export SGE_EXECD_PORT
 
 
-PATH=$SGE_ROOT/bin/$SGE_ARCH:$PATH; export PATH
+PATH=$PATH:$SGE_ROOT/bin/$SGE_ARCH; export PATH
 shlib_path_name=`$SGE_ROOT/util/arch -lib`
 old_value=`eval echo '$'$shlib_path_name`
 if [ x$old_value = x ]; then

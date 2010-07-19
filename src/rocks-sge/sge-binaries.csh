@@ -1,6 +1,6 @@
 #!/bin/csh
 #
-# $Id: sge-binaries.csh,v 1.10 2009/05/01 19:07:22 mjk Exp $
+# $Id: sge-binaries.csh,v 1.11 2010/07/19 23:18:28 anoop Exp $
 #
 # @Copyright@
 # 
@@ -57,6 +57,9 @@
 #
 #
 # $Log: sge-binaries.csh,v $
+# Revision 1.11  2010/07/19 23:18:28  anoop
+# Put sge path after others in the PATH variable
+#
 # Revision 1.10  2009/05/01 19:07:22  mjk
 # chimi con queso
 #
@@ -132,7 +135,7 @@ setenv SGE_CELL default
 setenv SGE_QMASTER_PORT 536
 setenv SGE_EXECD_PORT 537
 
-set path = ( $SGE_ROOT/bin/$SGE_ARCH $path )
+set path = ( $path $SGE_ROOT/bin/$SGE_ARCH )
 set shlib_path_name = `$SGE_ROOT/util/arch -lib`
 if ( `eval echo '$?'$shlib_path_name` ) then
    set old_value = `eval echo '$'$shlib_path_name`
