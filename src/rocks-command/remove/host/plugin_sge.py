@@ -1,12 +1,12 @@
-# $Id: plugin_sge.py,v 1.5 2009/10/12 18:33:11 bruno Exp $
+# $Id: plugin_sge.py,v 1.6 2010/09/07 23:53:25 bruno Exp $
 # 
 # @Copyright@
 # 
 # 				Rocks(r)
 # 		         www.rocksclusters.org
-# 		       version 5.2 (Chimichanga)
+# 		         version 5.4 (Maverick)
 # 
-# Copyright (c) 2000 - 2009 The Regents of the University of California.
+# Copyright (c) 2000 - 2010 The Regents of the University of California.
 # All rights reserved.	
 # 
 # Redistribution and use in source and binary forms, with or without
@@ -54,6 +54,9 @@
 # @Copyright@
 #
 # $Log: plugin_sge.py,v $
+# Revision 1.6  2010/09/07 23:53:25  bruno
+# star power for gb
+#
 # Revision 1.5  2009/10/12 18:33:11  bruno
 # nuke the host's queue while removing a node. thanks to Isaac Wagner for the
 # fix.
