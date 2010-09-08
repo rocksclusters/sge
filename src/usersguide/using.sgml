@@ -94,7 +94,7 @@ and put the following in it:
 #$ -S /bin/bash
 #
 
-/opt/openmpi/bin/mpirun -np $NSLOTS $HOME/test/mpi-ring
+/opt/openmpi/bin/mpirun $HOME/test/mpi-ring
 </screen>                                                                                
 <para>
 The command to submit a MPI parallel job script is similar to submitting a serial
@@ -147,8 +147,7 @@ Although the example job scripts are bash scripts, SGE can also accept other
 types of shell scripts.
 It is trivial to wrap serial programs into a SGE job script.
 Similarly, for MPI parallel jobs, you just need to use the correct
-<command>mpirun</command> launcher and to also add in the SGE variable,
-<literal>$NSLOTS</literal> within the job script.
+<command>mpirun</command> launcher within the job script.
 For other parallel jobs other than MPI, a Parallel Environment or PE needs to
 be defined.
 This is covered withn the SGE documentation found on Sun's web site.
