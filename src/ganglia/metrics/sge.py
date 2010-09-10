@@ -54,6 +54,12 @@
 # @Copyright@
 #
 # $Log: sge.py,v $
+# Revision 1.37  2010/09/10 18:23:44  bruno
+# updated gmetric python interface to the latest ganglia API
+#
+# made the sge job reporting metric more efficient based on this new gmetric
+# binding
+#
 # Revision 1.36  2010/09/07 23:53:25  bruno
 # star power for gb
 #
@@ -89,6 +95,7 @@ import gmon.events
 # Our MPD-style name list encoder.
 import gmon.encoder
 import rocks.util
+import gmon.gmetric
 
 
 class Job:
@@ -323,18 +330,13 @@ def sge_queue_state_handler(name):
 	#
 	# for the job info, make calls to gmetric
 	#
+	g = gmon.gmetric.Tx()
+
+	g = gmon.gmetric.Tx()
 	for jobid, j in jobs.items():
 		name = j.getName()
 		value = str(j)
-
-		cmd = '/opt/ganglia/bin/gmetric '
-		cmd += '--name="%s" ' % name
-		cmd += '--value="%s" ' % value
-		cmd += '--type="string" '
-		cmd += '--slope=zero '
-		cmd += '--dmax=120 '
-
-		os.system(cmd)
+		g.publish(name, value, type="string", slope="zero", dmax=120)
 
 	return totalslots
 
