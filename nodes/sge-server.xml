@@ -10,6 +10,9 @@
 
 	<changelog>
 	$Log: sge-server.xml,v $
+	Revision 1.50  2010/10/12 19:14:54  bruno
+	fix courtesy Nguyen Viet Cuong.
+	
 	Revision 1.49  2010/03/25 00:31:13  bruno
 	plug sge into the login appliance
 	
@@ -293,7 +296,7 @@ for TARGETHOST in $EXECHOSTS; do
 	else
 		numprocs=`qconf -se $TARGETHOST | \
 			awk '/^processors/ {print $2}'`
-		/opt/rocks/bin/rocks set host pxeboot action=install $TARGETHOST
+		/opt/rocks/bin/rocks set host boot $TARGETHOST action=install
 		qsub -p 1024 -pe mpi $numprocs -q all.q@$TARGETHOST \
 			/opt/gridengine/examples/jobs/reboot.qsub
 		echo "Set $TARGETHOST for Reinstallation"
