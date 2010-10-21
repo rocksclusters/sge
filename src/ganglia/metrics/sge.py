@@ -54,6 +54,9 @@
 # @Copyright@
 #
 # $Log: sge.py,v $
+# Revision 1.38  2010/10/21 19:52:56  bruno
+# set the time out for a dead metric (tmax) to be 60 seconds
+#
 # Revision 1.37  2010/09/10 18:23:44  bruno
 # updated gmetric python interface to the latest ganglia API
 #
@@ -336,7 +339,8 @@ def sge_queue_state_handler(name):
 	for jobid, j in jobs.items():
 		name = j.getName()
 		value = str(j)
-		g.publish(name, value, type="string", slope="zero", dmax=120)
+		g.publish(name, value, type="string", slope="zero", dmax=60,
+			tmax=60)
 
 	return totalslots
 
