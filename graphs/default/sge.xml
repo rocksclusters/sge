@@ -11,6 +11,10 @@
 
 	<changelog>
 	$Log: sge.xml,v $
+	Revision 1.25  2011/01/03 20:55:41  bruno
+	move the login appliance configuration out of the SGE roll and into the Base
+	roll.
+	
 	Revision 1.24  2010/03/25 00:31:13  bruno
 	plug sge into the login appliance
 	
@@ -74,7 +78,6 @@
 		<to>sge-base</to>
 		<to arch="i386">sge-globus-gcc32</to>
 		<to arch="x86_64">sge-globus-gcc64</to>
-		<to>login-server</to>
 	</edge>
 
 	<edge from="sge-client">
