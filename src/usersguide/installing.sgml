@@ -1,10 +1,17 @@
 <!--
-$Id: installing.sgml,v 1.4 2006/09/21 04:17:13 mjk Exp $
+$Id: installing.sgml,v 1.5 2011/02/14 22:14:17 mjk Exp $
 
 @Copyright@
 @Copyright@
 
 $Log: installing.sgml,v $
+Revision 1.5  2011/02/14 22:14:17  mjk
+- Build Env
+  - ROLLNAME defaults to ROLL
+  - Fixes for docbook
+- All userguides build again
+- All userguides are now NOARCH rpms
+
 Revision 1.4  2006/09/21 04:17:13  mjk
 major doc refresh
 
@@ -14,7 +21,7 @@ major doc refresh
 
 <title>Installing</title>
 
-&source_roll-installing-standard;
-&source_roll-installing-not-onthefly;
+&source-roll-installing-standard;
+&source-roll-installing-not-onthefly;
 
 </chapter>
