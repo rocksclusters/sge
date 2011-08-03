@@ -10,6 +10,9 @@
 
 	<changelog>
 	$Log: sge-server.xml,v $
+	Revision 1.51  2011/08/03 00:04:39  phil
+	Should fix bootstrap issue. Include libXp  as a required package
+	
 	Revision 1.50  2010/10/12 19:14:54  bruno
 	fix courtesy Nguyen Viet Cuong.
 	
@@ -161,6 +164,7 @@
 	<package>openmotif-devel</package>
 	<package>pam-devel</package>
 	<package>javacc</package>
+	<package>libXp</package>
 	<package>libXp-devel</package>
 	<package>junit</package>
 
