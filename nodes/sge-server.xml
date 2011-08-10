@@ -10,6 +10,9 @@
 
 	<changelog>
 	$Log: sge-server.xml,v $
+	Revision 1.52  2011/08/10 00:42:08  phil
+	Need automake14 for i386 build. Thanks, OGS.
+	
 	Revision 1.51  2011/08/03 00:04:39  phil
 	Should fix bootstrap issue. Include libXp  as a required package
 	
@@ -167,6 +170,7 @@
 	<package>libXp</package>
 	<package>libXp-devel</package>
 	<package>junit</package>
+	<package arch="i386">automake14</package>
 
 <post>
 
