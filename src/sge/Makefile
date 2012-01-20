@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.44 2011/07/23 02:31:36 phil Exp $
+# $Id: Makefile,v 1.45 2012/01/20 01:04:27 clem Exp $
 #
 # @Copyright@
 # 
@@ -55,6 +55,9 @@
 # @Copyright@
 #
 # $Log: Makefile,v $
+# Revision 1.45  2012/01/20 01:04:27  clem
+# Compile the JNI section of the sge libdrmaa
+#
 # Revision 1.44  2011/07/23 02:31:36  phil
 # Viper Copyright
 #
@@ -172,7 +175,7 @@ build:	prep patch
 		./aimk -only-depend -no-dump ; \
 		scripts/zerodepend ; \
 		./aimk -no-dump depend ; \
-		./aimk -no-dump -no-jni -no-java ; \
+		./aimk -no-dump -no-java ; \
 		./aimk -no-dump ; \
 		./aimk -no-dump -man ; \
 	)
