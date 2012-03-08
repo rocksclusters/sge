@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2011/07/23 02:31:35 phil Exp $
+# $Id: Makefile,v 1.3 2012/03/08 02:58:53 clem Exp $
 #
 # @Copyright@
 # 
@@ -55,6 +55,9 @@
 # @Copyright@
 #
 # $Log: Makefile,v $
+# Revision 1.3  2012/03/08 02:58:53  clem
+# now it should work in 5.7 too
+#
 # Revision 1.2  2011/07/23 02:31:35  phil
 # Viper Copyright
 #
@@ -168,10 +171,10 @@ include Rules.mk
 
 build:
 	$(TAR) -xzf $(NAME)$(VERSION).tar.gz
-	-(cd patch-files/$(NAME)$(VERSION)/common &&	\
+	-(cd $(PATCHDIR)/$(NAME)$(VERSION)/common &&	\
 	find . -type f | grep -v CVS |	cpio -pudv 	\
 		../../../$(NAME)$(VERSION))
-	-(cd patch-files/$(NAME)$(VERSION)/$(ARCH) &&	\
+	-(cd $(PATCHDIR)/$(NAME)$(VERSION)/$(ARCH) &&	\
 	find . -type f | grep -v CVS |  cpio -pudv 	\
 		../../../$(NAME)$(VERSION))
 	(					\
