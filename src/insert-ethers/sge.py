@@ -55,6 +55,9 @@
 # @Copyright@
 #
 # $Log: sge.py,v $
+# Revision 1.25  2012/03/08 20:33:15  clem
+# popen2 with subprocess cleanup
+#
 # Revision 1.24  2011/07/23 02:31:35  phil
 # Viper Copyright
 #
@@ -134,7 +137,7 @@
 
 
 import os
-import popen2
+import subprocess
 import commands
 import time
 import os.path
@@ -205,7 +208,9 @@ class Plugin(rocks.sql.InsertEthersPlugin):
 		# get a list of machines under SGE control
 		#
 		cmd = '/opt/rocks/bin/rocks report sge machines'
-		r, w = popen2.popen2(cmd)
+		p = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, 
+					stdout=subprocess.PIPE,close_fds=True)
+		w, r = (p.stdin, p.stdout)
 
 		for m in r.readlines():
 			machine = m.strip()
