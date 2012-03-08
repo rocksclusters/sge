@@ -355,7 +355,7 @@ set INTERACTTARGETS   = "qmake qtcsh"
 set SEC               = 1
 set SECFLAGS          = "-DSECURE -I$OPENSSL_HOME/include"
 set SECLIB            = ""
-set SECLIBS_STATIC    = "$OPENSSL_HOME/lib/libssl.a $OPENSSL_HOME/lib/libcrypto.a"
+set SECLIBS_STATIC    = "-lssl -lcrypt -lz"
 set KLFLAGS           = "-L$OPENSSL_HOME/lib"
 
 set CORELIB           = ""
