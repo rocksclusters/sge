@@ -11,6 +11,9 @@
 
 	<changelog>
 	$Log: sge.xml,v $
+	Revision 1.26  2012/03/13 17:30:26  clem
+	Some housekeeping work. Cleanup all the old unnecessary sge files and globus GRAM
+	
 	Revision 1.25  2011/01/03 20:55:41  bruno
 	move the login appliance configuration out of the SGE roll and into the Base
 	roll.
@@ -76,8 +79,6 @@
 
 	<edge from="sge-server">
 		<to>sge-base</to>
-		<to arch="i386">sge-globus-gcc32</to>
-		<to arch="x86_64">sge-globus-gcc64</to>
 	</edge>
 
 	<edge from="sge-client">

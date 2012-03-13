@@ -1,4 +1,0 @@
-NAME		= sge
-VERSION		= V62u5
-RELEASE		= 1
-

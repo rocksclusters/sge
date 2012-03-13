@@ -1,1 +1,0 @@
-SGE_ARCH	= lx26-x86
