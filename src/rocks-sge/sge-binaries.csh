@@ -1,6 +1,6 @@
 #!/bin/csh
 #
-# $Id: sge-binaries.csh,v 1.13 2011/07/23 02:31:36 phil Exp $
+# $Id: sge-binaries.csh,v 1.14 2012/04/30 16:59:03 phil Exp $
 #
 # @Copyright@
 # 
@@ -57,6 +57,9 @@
 #
 #
 # $Log: sge-binaries.csh,v $
+# Revision 1.14  2012/04/30 16:59:03  phil
+# in only add to path if not already there.
+#
 # Revision 1.13  2011/07/23 02:31:36  phil
 # Viper Copyright
 #
@@ -141,7 +144,16 @@ setenv SGE_CELL default
 setenv SGE_QMASTER_PORT 536
 setenv SGE_EXECD_PORT 537
 
-set path = ( $path $SGE_ROOT/bin/$SGE_ARCH )
+
+set BIN=${SGE_ROOT}/bin/${SGE_ARCH}
+
+if ( -d ${BIN}  ) then
+	echo ${PATH} | /bin/grep -q ${BIN} 
+	if ( $? != 0) then
+        	setenv PATH "${PATH}:${BIN}"
+	endif
+endif
+
 set shlib_path_name = `$SGE_ROOT/util/arch -lib`
 if ( `eval echo '$?'$shlib_path_name` ) then
    set old_value = `eval echo '$'$shlib_path_name`

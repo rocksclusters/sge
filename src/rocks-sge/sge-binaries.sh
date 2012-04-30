@@ -1,7 +1,7 @@
 #!/bin/sh
 
 #
-# $Id: sge-binaries.sh,v 1.13 2011/07/23 02:31:36 phil Exp $
+# $Id: sge-binaries.sh,v 1.14 2012/04/30 16:59:03 phil Exp $
 #
 # @Copyright@
 # 
@@ -58,6 +58,9 @@
 #
 #
 # $Log: sge-binaries.sh,v $
+# Revision 1.14  2012/04/30 16:59:03  phil
+# in only add to path if not already there.
+#
 # Revision 1.13  2011/07/23 02:31:36  phil
 # Viper Copyright
 #
@@ -144,8 +147,14 @@ SGE_CELL=default; export SGE_CELL
 SGE_QMASTER_PORT=536; export SGE_QMASTER_PORT
 SGE_EXECD_PORT=537; export SGE_EXECD_PORT
 
+BIN=$SGE_ROOT/bin/$SGE_ARCH
 
-PATH=$PATH:$SGE_ROOT/bin/$SGE_ARCH; export PATH
+if [ -d ${BIN} ]; then
+	if ! echo ${PATH} | /bin/grep -q ${BIN} ; then
+        	export PATH=${PATH}:${BIN}
+	fi
+fi
+
 shlib_path_name=`$SGE_ROOT/util/arch -lib`
 old_value=`eval echo '$'$shlib_path_name`
 if [ x$old_value = x ]; then
