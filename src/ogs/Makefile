@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2012/03/08 02:58:53 clem Exp $
+# $Id: Makefile,v 1.4 2012/05/05 01:02:53 clem Exp $
 #
 # @Copyright@
 # 
@@ -55,6 +55,9 @@
 # @Copyright@
 #
 # $Log: Makefile,v $
+# Revision 1.4  2012/05/05 01:02:53  clem
+# SGE6.2u5p3 security patch (tested)
+#
 # Revision 1.3  2012/03/08 02:58:53  clem
 # now it should work in 5.7 too
 #
@@ -177,6 +180,9 @@ build:
 	-(cd $(PATCHDIR)/$(NAME)$(VERSION)/$(ARCH) &&	\
 	find . -type f | grep -v CVS |  cpio -pudv 	\
 		../../../$(NAME)$(VERSION))
+	#security patches http://gridscheduler.sourceforge.net/security.html
+	cd $(NAME)$(VERSION)/source && patch -p0 < ../../buffer-overflow.patch
+	cd $(NAME)$(VERSION)/source && patch -p0 < ../../SGE6.2u5p3.patch
 	(					\
 		cd $(NAME)$(VERSION)/source;	\
 		./aimk -only-depend -no-dump;	\
