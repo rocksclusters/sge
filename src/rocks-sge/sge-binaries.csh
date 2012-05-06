@@ -1,14 +1,15 @@
 #!/bin/csh
 #
-# $Id: sge-binaries.csh,v 1.14 2012/04/30 16:59:03 phil Exp $
+# $Id: sge-binaries.csh,v 1.15 2012/05/06 05:49:42 phil Exp $
 #
 # @Copyright@
 # 
 # 				Rocks(r)
 # 		         www.rocksclusters.org
-# 		         version 5.4.3 (Viper)
+# 		         version 5.5 (Mamba)
+# 		         version 6.0 (Mamba)
 # 
-# Copyright (c) 2000 - 2011 The Regents of the University of California.
+# Copyright (c) 2000 - 2012 The Regents of the University of California.
 # All rights reserved.	
 # 
 # Redistribution and use in source and binary forms, with or without
@@ -27,7 +28,7 @@
 # features or use of this software must display the following acknowledgement: 
 # 
 # 	"This product includes software developed by the Rocks(r)
-# 	Development Team at the San Diego Supercomputer Center at the
+# 	Cluster Group at the San Diego Supercomputer Center at the
 # 	University of California, San Diego and its contributors."
 # 
 # 4. Except as permitted for the purposes of acknowledgment in paragraph 3,
@@ -57,6 +58,9 @@
 #
 #
 # $Log: sge-binaries.csh,v $
+# Revision 1.15  2012/05/06 05:49:42  phil
+# Copyright Storm for Mamba
+#
 # Revision 1.14  2012/04/30 16:59:03  phil
 # in only add to path if not already there.
 #
