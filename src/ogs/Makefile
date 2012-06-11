@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.5 2012/05/06 05:49:42 phil Exp $
+# $Id: Makefile,v 1.6 2012/06/11 23:43:05 clem Exp $
 #
 # @Copyright@
 # 
@@ -56,6 +56,10 @@
 # @Copyright@
 #
 # $Log: Makefile,v $
+# Revision 1.6  2012/06/11 23:43:05  clem
+# Argh! JNDI interface didn't make it in Rocks 6.0 cos I commited the fix in
+# sge and not in ogs! :-(
+#
 # Revision 1.5  2012/05/06 05:49:42  phil
 # Copyright Storm for Mamba
 #
@@ -192,8 +196,7 @@ build:
 		./aimk -only-depend -no-dump;	\
 		./scripts/zerodepend;		\
 		./aimk -no-dump depend;		\
-		./aimk -no-dump -no-jni		\
-			-no-java -no-gui-inst;	\
+		./aimk -no-dump -no-java -no-gui-inst;	\
 		./aimk -no-dump -man;		\
 	)
 
