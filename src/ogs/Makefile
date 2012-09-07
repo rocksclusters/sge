@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2012/06/11 23:43:05 clem Exp $
+# $Id: Makefile,v 1.7 2012/09/07 22:40:40 clem Exp $
 #
 # @Copyright@
 # 
@@ -56,6 +56,9 @@
 # @Copyright@
 #
 # $Log: Makefile,v $
+# Revision 1.7  2012/09/07 22:40:40  clem
+# Upgraded Grid Engine from version SGE6.2u5p2 (with patches to p3) to GE2011.11p1
+#
 # Revision 1.6  2012/06/11 23:43:05  clem
 # Argh! JNDI interface didn't make it in Rocks 6.0 cos I commited the fix in
 # sge and not in ogs! :-(
@@ -179,33 +182,21 @@ REDHAT.ROOT     = $(CURDIR)/../../
 -include $(ROCKSROOT)/etc/Rules.mk
 include Rules.mk
 
-
 build:
 	$(TAR) -xzf $(NAME)$(VERSION).tar.gz
-	-(cd $(PATCHDIR)/$(NAME)$(VERSION)/common &&	\
-	find . -type f | grep -v CVS |	cpio -pudv 	\
-		../../../$(NAME)$(VERSION))
-	-(cd $(PATCHDIR)/$(NAME)$(VERSION)/$(ARCH) &&	\
-	find . -type f | grep -v CVS |  cpio -pudv 	\
-		../../../$(NAME)$(VERSION))
-	#security patches http://gridscheduler.sourceforge.net/security.html
-	cd $(NAME)$(VERSION)/source && patch -p0 < ../../buffer-overflow.patch
-	cd $(NAME)$(VERSION)/source && patch -p0 < ../../SGE6.2u5p3.patch
-	(					\
-		cd $(NAME)$(VERSION)/source;	\
-		./aimk -only-depend -no-dump;	\
-		./scripts/zerodepend;		\
-		./aimk -no-dump depend;		\
-		./aimk -no-dump -no-java -no-gui-inst;	\
-		./aimk -no-dump -man;		\
-	)
+	cd $(NAME)$(VERSION); patch -p1 < ../patch
+	cd $(NAME)$(VERSION)/source; ./aimk -only-depend -no-dump;
+	cd $(NAME)$(VERSION)/source; ./scripts/zerodepend;
+	cd $(NAME)$(VERSION)/source; ./aimk -no-dump -sys-libssl depend;
+	cd $(NAME)$(VERSION)/source; ./aimk -no-dump -sys-libssl -no-java -no-gui-inst;
+	cd $(NAME)$(VERSION)/source; ./aimk -no-dump -man;
 
 install::
 	mkdir -p $(ROOT)/$(PKGROOT)
 	( 						\
 		cd $(NAME)$(VERSION)/source;		\
-		echo Y | SGE_ROOT=$(ROOT)/$(PKGROOT)	\
-		./scripts/distinst -local -noexit	\
+		SGE_ROOT=$(ROOT)/$(PKGROOT)	\
+		./scripts/distinst -local -y -noexit	\
 			-allall $(SGE_ARCH);		\
 	)
 

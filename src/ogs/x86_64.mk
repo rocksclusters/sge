@@ -1,1 +1,1 @@
-SGE_ARCH	= lx26-amd64
+SGE_ARCH	= linux-x64

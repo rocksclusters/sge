@@ -1,0 +1,75 @@
+diff -ru GE2011.11p1.orig/source/aimk.site GE2011.11p1/source/aimk.site
+--- GE2011.11p1.orig/source/aimk.site	2012-05-23 12:05:00.000000000 -0700
++++ GE2011.11p1/source/aimk.site	2012-09-07 12:37:06.625448973 -0700
+@@ -76,14 +76,20 @@
+ # OPENSSL_HOME the directory where the include and lib directory of openssl
+ # is installed
+ #
+-set OPENSSL_SOVERSION = 0.9.8h
+-set OPENSSL_HOME = /build/openssl-install
++set OPENSSL_SOVERSION = 1.0.0
++set OPENSSL_HOME = /usr
++
++# 
++# POSTGRES_HOME the directory where the include and lib directory of 
++# PostgreSQL is installed
++#
++set POSTGRES_HOME = $PWD
+ 
+ # 
+ # BERKELEYDB_HOME the directory where the include and lib directory of
+ # Berkeley DB is installed
+ #
+-set BERKELEYDB_HOME = /build/berkeleydb
++set BERKELEYDB_HOME = /usr
+ set BDB_INCLUDE_SUBDIR =
+ set BDB_LIB_SUBDIR =
+ set BDB_LIB_SUFFIX =
+@@ -100,31 +106,31 @@
+ # KRB_HOME the directory where the include and lib directory of kerberos is
+ # installed
+ #
+-set KRB_HOME = /vol2/tools/SW/krb5/$buildarch
++set KRB_HOME = $PWD
+ 
+ # 
+ # man2html path
+ #
+-set MAN2HTMLPATH = /vol2/tools/SW/$buildarch/bin
++set MAN2HTMLPATH = $PWD
+ # 
+ # groff path
+ #
+-set GROFFPATH = /vol2/tools/SW/$buildarch/bin
++set GROFFPATH = $PWD
+ 
+ #
+ # SWIG path 
+ #
+-set SWIG = /vol2/tools/SW/swig-1.3.22/$buildarch/bin/swig
++set SWIG = $PWD
+ 
+ #
+ # PERL path
+ #
+-set PERL = /vol2/tools/SW/$buildarch/bin/perl
++set PERL = /usr/bin/perl
+ 
+ #
+ # TCLSH path
+ #
+-set TCLSH = /vol2/tools/SW/$buildarch/bin/tclsh8.3
++set TCLSH = /bin/tcsh
+ 
+ #
+ # Location of a copyright.h file which containes a copyright string
+@@ -221,8 +227,7 @@
+ 
+ 
+ # set junit jar file
+-# set JUNIT_JAR = '/vol2/tools/SW/java/junit3.8.1/junit.jar'
+-set JUNIT_JAR = '/usr/share/java/junit.jar'
++set JUNIT_JAR = '/opt/rocks/lib/ant-junit.jar'
+ 
+ # set some variables which are necessary to compile GE for win32 architecture
+ #
