@@ -10,6 +10,9 @@
 
 	<changelog>
 	$Log: sge-base.xml,v $
+	Revision 1.18  2012/10/11 02:50:22  clem
+	SGE now is called GE
+	
 	Revision 1.17  2011/06/10 23:45:55  anoop
 	Added Open Grid Scheduler to the SGE roll.
 	
@@ -93,7 +96,7 @@
 	</changelog>
 
 	<package os="linux">openmotif</package>
-	<package os="linux">SGE</package>
+	<package os="linux">GE</package>
 	<package os="linux">rocks-sge</package>
 	<package os="linux">sge-drmaa</package>
 
