@@ -1,12 +1,8 @@
 #!/bin/bash
 #
-# Test vm machines
+# Test SGE
 #
-# prerequisite 2 vm-container already up and running
-#
-# no virtual compute already installed
-#
-# maxrun time 2 hours
+# maxrun time 2 minutes
 
 function reportError {
 	echo $1
@@ -25,9 +21,9 @@ function Pause {
 
 TESTUSER=testsge
 
-#echo creating user test
-#useradd -m $TESTUSER
-#rocks sync users
+echo creating user test
+useradd -m $TESTUSER
+rocks sync users
 
 while [ true ]; do
 	sleep 5
@@ -36,7 +32,7 @@ while [ true ]; do
 	fi
 done
 
-
+echo submitting jog to sge
 cp -p scripts/job.sh /home/$TESTUSER/
 chown $TESTUSER /home/$TESTUSER/job.sh
 su - $TESTUSER -c "qsub -sync y job.sh " || reportError "Unable to run condor_submit"
