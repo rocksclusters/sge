@@ -10,6 +10,11 @@
 
 	<changelog>
 	$Log: sge-server.xml,v $
+	Revision 1.53  2012/10/26 18:28:15  clem
+	no more globus code in SGE since globus is not supported anymore
+	
+	http://marc.info/?l=npaci-rocks-discussion&m=135127514718191&w=2
+	
 	Revision 1.52  2011/08/10 00:42:08  phil
 	Need automake14 for i386 build. Thanks, OGS.
 	
@@ -257,26 +262,6 @@ $SGE_ROOT/bin/$SGE_ARCH/qconf -as `/bin/hostname --fqdn` \
 $SGE_ROOT/bin/$SGE_ARCH/qconf -rattr queue pe_list 'make mpich mpi orte' all.q \
 	&gt;&gt; /dev/null 2&gt;&amp;1
 
-
-# Setup the Globus GRAM if Globus exists
-
-if [ -f /etc/profile.d/globus.sh ]; then
-	source /etc/profile.d/globus.sh
-	touch $SGE_ROOT/default/common/reporting
-	chown 400:400 $SGE_ROOT/default/common/reporting
-	$GLOBUS_LOCATION/sbin/gpt-postinstall
-	if [ -d /opt/mpich/gnu/bin ]; then
-		export PATH=/opt/mpich/gnu/bin:$PATH
-	fi
-	# re-run jobmanager setup again so it points to correct PE
-	[ -f /etc/profile.d/java.sh ] &amp;&amp; source /etc/profile.d/java.sh
-	[ -f /etc/profile.d/apache-ant.sh ] &amp;&amp; source /etc/profile.d/apache-ant.sh
-	if [ X"$ANT_HOME" != X ]; then
-		export PATH="$ANT_HOME/bin:$PATH"
-	fi
-
-	(cd $GLOBUS_LOCATION/setup/globus &amp;&amp; rm -f config.cache &amp;&amp; ./setup-globus-job-manager-sge --mpi-pe=mpich)
-fi
 
 #
 # call 'rocks sync config' to ensure all the sge clients are properly set up
