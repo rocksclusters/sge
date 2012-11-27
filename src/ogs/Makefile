@@ -1,14 +1,14 @@
 #
-# $Id: Makefile,v 1.7 2012/09/07 22:40:40 clem Exp $
+# $Id: Makefile,v 1.8 2012/11/27 00:49:31 phil Exp $
 #
 # @Copyright@
 # 
 # 				Rocks(r)
 # 		         www.rocksclusters.org
-# 		         version 5.5 (Mamba)
-# 		         version 6.0 (Mamba)
+# 		         version 5.6 (Emerald Boa)
+# 		         version 6.1 (Emerald Boa)
 # 
-# Copyright (c) 2000 - 2012 The Regents of the University of California.
+# Copyright (c) 2000 - 2013 The Regents of the University of California.
 # All rights reserved.	
 # 
 # Redistribution and use in source and binary forms, with or without
@@ -56,6 +56,9 @@
 # @Copyright@
 #
 # $Log: Makefile,v $
+# Revision 1.8  2012/11/27 00:49:31  phil
+# Copyright Storm for Emerald Boa
+#
 # Revision 1.7  2012/09/07 22:40:40  clem
 # Upgraded Grid Engine from version SGE6.2u5p2 (with patches to p3) to GE2011.11p1
 #
