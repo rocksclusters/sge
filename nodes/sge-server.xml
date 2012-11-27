@@ -10,10 +10,15 @@
 
 	<changelog>
 	$Log: sge-server.xml,v $
+	Revision 1.54  2012/11/27 19:07:02  phil
+	need to escape XML character in the changelog.
+	reset variables for packages when calling install_os_packages for bootstrap
+	Update manifest to reflect change to GE.
+	
 	Revision 1.53  2012/10/26 18:28:15  clem
 	no more globus code in SGE since globus is not supported anymore
 	
-	http://marc.info/?l=npaci-rocks-discussion&m=135127514718191&w=2
+	http://marc.info/?l=npaci-rocks-discussion&amp;m=135127514718191&amp;w=2
 	
 	Revision 1.52  2011/08/10 00:42:08  phil
 	Need automake14 for i386 build. Thanks, OGS.

@@ -2,7 +2,7 @@
 #
 # This file should remain OS independent
 #
-# $Id: bootstrap.sh,v 1.12 2012/11/27 00:49:30 phil Exp $
+# $Id: bootstrap.sh,v 1.13 2012/11/27 19:07:02 phil Exp $
 #
 # @Copyright@
 # 
@@ -59,6 +59,11 @@
 # @Copyright@
 #
 # $Log: bootstrap.sh,v $
+# Revision 1.13  2012/11/27 19:07:02  phil
+# need to escape XML character in the changelog.
+# reset variables for packages when calling install_os_packages for bootstrap
+# Update manifest to reflect change to GE.
+#
 # Revision 1.12  2012/11/27 00:49:30  phil
 # Copyright Storm for Emerald Boa
 #
@@ -101,5 +106,6 @@
 . $ROLLSROOT/etc/bootstrap-functions.sh
 
 install_os_packages sge-server
+bootstrap_py_init
 install_os_packages sge-base
 
