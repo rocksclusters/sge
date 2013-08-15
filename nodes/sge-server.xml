@@ -225,8 +225,29 @@ job_is_first_task FALSE
 accounting_summary TRUE
 urgency_slots     min
 </file>
+</post>
 
+<!-- reconfigure
+<post reconfigure=only>
+# should we reconfigure the scheduler all the times?
+#
+if [ "&Kickstart_PrivateHostname_old;" ]; then
+	# 
+	# wipe the previous configuration
+	#
+	myhostname="&Kickstart_PrivateHostname_old;"
+	/etc/init.d/sgemaster.$myhostname stop
+	/sbin/chkconfig sgemaster.$myhostname off
+	rm /etc/init.d/sgemaster.$myhostname
+	rm -rf /opt/gridengine/default
+fi
 
+</post>
+
+-->
+
+<!-- reconfigure run this post section -->
+<post>
 <file name="/etc/rc.d/rocksconfig.d/post-01-sge-qmaster" perms="0755">
 #!/bin/bash -x
 
@@ -276,8 +297,20 @@ $SGE_ROOT/bin/$SGE_ARCH/qconf -rattr queue pe_list 'make mpich mpi orte' all.q \
 
 rm /etc/rc.d/rocksconfig.d/post-01-sge-qmaster
 </file>
+</post>
+
+<!--
+<post reconfigure=only>
+
+if [ "&Kickstart_PrivateHostname_old;" ]; then
+	/etc/rc.d/rocksconfig.d/post-01-sge-qmaster
+else
+	#we should not reconfigure sge
+	rm /etc/rc.d/rocksconfig.d/post-01-sge-qmaster
+fi
 
 </post>
+-->
 
 <post>
 

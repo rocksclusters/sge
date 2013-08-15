@@ -91,6 +91,8 @@
 
 
 	<order head="login-server" tail="sge-server"/>
+	<order head="sge-base" tail="sge-server"/>
+	<order head="sge-server" tail="sge-client"/>
 
 </graph>
 
