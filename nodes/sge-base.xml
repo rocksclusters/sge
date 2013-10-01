@@ -134,13 +134,13 @@ SGE_CLUSTER_NAME="&Kickstart_PrivateHostname;"
 
 </post>
 
-<!-- reconfigure
-<post reconfigure=only>
+
+<configure phase="reconfigure">
 if [ "&Kickstart_PrivateHostname_old;" ]; then
 	sed -i "s/&Kickstart_PrivateHostname_old;/&Kickstart_PrivateHostname;/g" /opt/gridengine/util/install_modules/sge_configuration.conf
 fi
-</post>
--->
+</configure>
+
 
 <post os="sunos">
 crle -64 -u -l /opt/gridengine/lib/sol-amd64

@@ -227,11 +227,11 @@ urgency_slots     min
 </file>
 </post>
 
-<!-- reconfigure
-<post reconfigure=only>
-# should we reconfigure the scheduler all the times?
-#
-if [ "&Kickstart_PrivateHostname_old;" ]; then
+<configure phase="reconfigure">
+# if Kickstart_PrivateHostname changes,
+# Kickstart_PublicHostname will change as well
+# so let's test the latter
+if [ "&Kickstart_PublicHostname_old;" ]; then
 	# 
 	# wipe the previous configuration
 	#
@@ -242,12 +242,11 @@ if [ "&Kickstart_PrivateHostname_old;" ]; then
 	rm -rf /opt/gridengine/default
 fi
 
-</post>
+</configure>
 
--->
 
 <!-- reconfigure run this post section -->
-<post>
+<configure phase="post,reconfigure">
 <file name="/etc/rc.d/rocksconfig.d/post-01-sge-qmaster" perms="0755">
 #!/bin/bash -x
 
@@ -297,20 +296,19 @@ $SGE_ROOT/bin/$SGE_ARCH/qconf -rattr queue pe_list 'make mpich mpi orte' all.q \
 
 rm /etc/rc.d/rocksconfig.d/post-01-sge-qmaster
 </file>
-</post>
+</configure>
 
-<!--
-<post reconfigure=only>
 
-if [ "&Kickstart_PrivateHostname_old;" ]; then
+<configure phase="post,reconfigure">
+# if Kickstart_PrivateHostname changes Kickstart_PublicHostname_old will
+# change as well, so let's test the latter
+if [ "&Kickstart_PublicHostname_old;" ]; then
 	/etc/rc.d/rocksconfig.d/post-01-sge-qmaster
 else
 	#we should not reconfigure sge
 	rm /etc/rc.d/rocksconfig.d/post-01-sge-qmaster
 fi
-
-</post>
--->
+</configure>
 
 <post>
 
