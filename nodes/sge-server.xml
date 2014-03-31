@@ -299,7 +299,7 @@ rm /etc/rc.d/rocksconfig.d/post-01-sge-qmaster
 </configure>
 
 
-<configure phase="post,reconfigure">
+<configure phase="reconfigure">
 # if Kickstart_PrivateHostname changes Kickstart_PublicHostname_old will
 # change as well, so let's test the latter
 if [ "&Kickstart_PublicHostname_old;" ]; then
