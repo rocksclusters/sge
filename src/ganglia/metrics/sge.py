@@ -103,7 +103,7 @@ import os
 import sys
 import time
 import xml.sax
-sys.path.append('/opt/rocks/lib/python2.4/site-packages')
+sys.path.append('/opt/rocks/lib/python2.6/site-packages')
 import gmon.events
 # Our MPD-style name list encoder.
 import gmon.encoder
