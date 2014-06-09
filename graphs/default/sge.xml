@@ -85,11 +85,6 @@
 		<to>sge-base</to>
 	</edge>
 
-	<edge from="ganglia-server">
-		<to>sge-ganglia</to>
-	</edge>
-
-
 	<order head="login-server" tail="sge-server"/>
 	<order head="sge-base" tail="sge-server"/>
 	<order head="sge-server" tail="sge-client"/>
