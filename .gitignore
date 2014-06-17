@@ -1,0 +1,36 @@
+
+# build directory
+BUILD/
+RPMS/
+SOURCES/
+SPECS/
+
+
+*.pyc
+
+_os
+_arch
+_distribution
+
+# ignore version.mk
+rocks-version.mk
+rocks-version-common.mk
+
+# ignore python.mk
+python.mk
+
+# ignore Rules files
+Rules-install.mk
+Rules-linux-centos.mk
+Rules-linux.mk
+Rules-rcfiles.mk
+Rules-scripts.mk
+Rules.mk
+Rolls.mk
+
+# --- BEGIN --- binaries files
+src/ogs/GE2011.11p1.tar.gz
+src/sun_sge/ge-6.2u4-bin-sol-amd64.tar.gz
+src/sun_sge/ge-6.2u4-bin-sol-x86.tar.gz
+src/sun_sge/ge-6.2u4-common.tar.gz
+# --- END ---
