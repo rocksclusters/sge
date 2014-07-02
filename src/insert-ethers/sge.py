@@ -154,7 +154,7 @@ from syslog import syslog
 class Plugin(rocks.sql.InsertEthersPlugin):
 	"Controls SGE when nodes are added."
 
-	def added(self, nodename, id):
+	def added(self, nodename):
 		#
 		# don't execute this code if we are in 'batch' or 'norestart'
 		# mode
