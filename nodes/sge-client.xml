@@ -150,18 +150,6 @@ rm /etc/rc.d/rocksconfig.d/post-91-sge
 </post>
 
 
-<!-- reconfigure
-<post reconfigure=only>
-
-if [ "&Kickstart_PrivateHostname_old;" ]; then
-	/etc/rc.d/rocksconfig.d/post-91-sge
-else
-	rm /etc/rc.d/rocksconfig.d/post-91-sge
-fi
-
-</post>
--->
-
 <post os="sunos">
 sysidconfig -a /opt/gridengine/share/sge_exec_setup.sh
 mkdir -p /var/svc/manifest/network/sge/

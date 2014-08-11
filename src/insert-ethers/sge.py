@@ -223,7 +223,7 @@ class Plugin(rocks.sql.InsertEthersPlugin):
 			machine = m.strip()
 
 			if machine not in adminhosts:
-				self.added(machine, 0)
+				self.added(machine)
 
 		return
 
