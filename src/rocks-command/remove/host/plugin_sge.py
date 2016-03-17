@@ -94,6 +94,7 @@ import os
 import subprocess
 import shlex
 import rocks.commands
+import syslog
 
 class Plugin(rocks.commands.Plugin):
 
@@ -112,6 +113,7 @@ class Plugin(rocks.commands.Plugin):
 		# remove the host from every defined SGE 'host group'
 		#
 		cmd = 'qconf -shgrpl'
+		try:
 		p = subprocess.Popen(shlex.split(cmd), stdin = subprocess.PIPE,
 			stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 
@@ -132,4 +134,6 @@ class Plugin(rocks.commands.Plugin):
 			stdin = subprocess.PIPE,
 			stdout = subprocess.PIPE,
 			stderr = subprocess.PIPE)
+		except:
+                        syslog.syslog(syslog.LOG_INFO, 'sge remove fail for %s' % host)
 
