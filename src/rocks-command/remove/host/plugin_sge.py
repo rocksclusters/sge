@@ -114,26 +114,26 @@ class Plugin(rocks.commands.Plugin):
 		#
 		cmd = 'qconf -shgrpl'
 		try:
-		p = subprocess.Popen(shlex.split(cmd), stdin = subprocess.PIPE,
-			stdout = subprocess.PIPE, stderr = subprocess.PIPE)
+			p = subprocess.Popen(shlex.split(cmd), stdin = subprocess.PIPE,
+				stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 
-		for group in p.stdout.readlines():
-			cmd = 'qconf -dattr hostgroup hostlist %s %s' % \
-				(host, group)
+			for group in p.stdout.readlines():
+				cmd = 'qconf -dattr hostgroup hostlist %s %s' % \
+					(host, group)
 
+				p = subprocess.Popen(shlex.split(cmd),
+					stdin = subprocess.PIPE,
+					stdout = subprocess.PIPE,
+					stderr = subprocess.PIPE)
+
+			#
+			# remove the host as a SGE 'execution host'
+			#
+			cmd = 'qconf -de %s' % host
 			p = subprocess.Popen(shlex.split(cmd),
 				stdin = subprocess.PIPE,
 				stdout = subprocess.PIPE,
 				stderr = subprocess.PIPE)
-
-		#
-		# remove the host as a SGE 'execution host'
-		#
-		cmd = 'qconf -de %s' % host
-		p = subprocess.Popen(shlex.split(cmd),
-			stdin = subprocess.PIPE,
-			stdout = subprocess.PIPE,
-			stderr = subprocess.PIPE)
 		except:
                         syslog.syslog(syslog.LOG_INFO, 'sge remove fail for %s' % host)
 
