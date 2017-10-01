@@ -174,7 +174,7 @@
 	<package>sge-insert-ethers</package>
 	<package>rocks-command-sge</package>
 	<package>db4-utils</package>
-	<package>openmotif-devel</package>
+	<package>motif-devel</package>
 	<package>pam-devel</package>
 	<package>javacc</package>
 	<package>libXp</package>

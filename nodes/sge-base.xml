@@ -95,14 +95,10 @@
 
 	</changelog>
 
-	<package os="linux">openmotif</package>
-	<package os="linux">GE</package>
+	<package os="linux">motif</package>
+	<package os="linux">sge</package>
 	<package os="linux">rocks-sge</package>
 	<package os="linux">sge-drmaa</package>
-
-	<package os="sunos">SUNWmfrun</package>
-	<package os="sunos">ROCKSge</package>
-	<package os="sunos">ROCKSrocks-sge</package>
 
 <post>
 SGE_UID=400
