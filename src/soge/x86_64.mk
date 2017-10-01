@@ -1,1 +1,1 @@
-SGE_ARCH	= LINUXAMD64
+SGE_ARCH	=  lx-amd64
