@@ -95,8 +95,6 @@
 # drmaa
 #
 
-PKGROOT	     = /opt/gridengine
-
 REDHAT.ROOT     = $(CURDIR)/../../
 -include $(ROCKSROOT)/etc/Rules.mk
 include Rules.mk
