@@ -1,1 +1,1 @@
-SGE_ARCH	= linux-x64
+SGE_ARCH	= LINUXAMD64

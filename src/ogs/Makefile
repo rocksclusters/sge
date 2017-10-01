@@ -178,27 +178,25 @@
 #
 #
 
-PKGROOT		= /opt/gridengine
 REDHAT.ROOT     = $(CURDIR)/../../
 
 -include $(ROCKSROOT)/etc/Rules.mk
 include Rules.mk
 
 build:
-	$(TAR) -xzf $(NAME)$(VERSION).tar.gz
-	cd $(NAME)$(VERSION); patch -p1 < ../patch
-	cd $(NAME)$(VERSION)/source; ./aimk -only-depend -no-dump;
-	cd $(NAME)$(VERSION)/source; ./scripts/zerodepend;
-	cd $(NAME)$(VERSION)/source; ./aimk -no-dump -sys-libssl depend;
-	cd $(NAME)$(VERSION)/source; ./aimk -no-dump -sys-libssl -no-java -no-gui-inst;
-	cd $(NAME)$(VERSION)/source; ./aimk -no-dump -man;
+	$(TAR) -xzf $(NAME)-$(VERSION).tar.gz
+	# cd $(NAME)-$(VERSION); patch -p1 < ../patch
+	cd $(NAME)-$(VERSION)/source; scripts/bootstrap.sh
+	cd $(NAME)-$(VERSION)/source; ./aimk -only-depend 
+	cd $(NAME)-$(VERSION)/source; ./aimk
+	cd $(NAME)-$(VERSION)/source; ./aimk -man 
 
 install::
 	mkdir -p $(ROOT)/$(PKGROOT)
 	( 						\
-		cd $(NAME)$(VERSION)/source;		\
-		SGE_ROOT=$(ROOT)/$(PKGROOT)	\
-		./scripts/distinst -local -y -noexit	\
+		cd $(NAME)-$(VERSION)/source;		\
+		/usr/bin/yes | SGE_ROOT=$(ROOT)/$(PKGROOT)	\
+		./scripts/distinst -local -noexit	\
 			-allall $(SGE_ARCH);		\
 	)
 
