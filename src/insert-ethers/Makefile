@@ -108,7 +108,6 @@
 
 
 
-PKGROOT = /opt/rocks/var/plugins/insertethers
 PLUGINS = $(wildcard *.py)
 
 REDHAT.ROOT = $(PWD)/../../
