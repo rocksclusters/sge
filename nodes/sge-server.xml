@@ -173,7 +173,7 @@
 	<package>sge-ganglia</package>
 	<package>sge-insert-ethers</package>
 	<package>rocks-command-sge</package>
-	<package>db4-utils</package>
+	<package>compat-db47</package>
 	<package>motif-devel</package>
 	<package>pam-devel</package>
 	<package>javacc</package>

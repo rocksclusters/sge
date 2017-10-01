@@ -98,7 +98,6 @@
 	<package os="linux">motif</package>
 	<package os="linux">sge</package>
 	<package os="linux">rocks-sge</package>
-	<package os="linux">sge-drmaa</package>
 
 <post>
 SGE_UID=400
