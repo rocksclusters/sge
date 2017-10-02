@@ -145,6 +145,9 @@ cd $SGE_ROOT &amp;&amp; \
 	./inst_sge -noremote $SET_HOST_TYPE -auto \
 	./util/install_modules/sge_host_config.conf &gt; /dev/null 2&gt;&amp;1
 
+svc=$(/usr/bin/basename $(/usr/bin/find /etc/rc.d/init.d | /usr/bin/grep sgeexecd))
+/usr/sbin/service $svc start
+/usr/sbin/chkconfig --level=35 $svc on
 rm /etc/rc.d/rocksconfig.d/post-91-sge
 </file>
 </post>
