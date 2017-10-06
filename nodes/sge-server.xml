@@ -294,6 +294,9 @@ $SGE_ROOT/bin/$SGE_ARCH/qconf -rattr queue pe_list 'make mpich mpi orte' all.q \
 #
 /opt/rocks/bin/rocks sync config
 
+svc=$(/usr/bin/basename $(/usr/bin/find /etc/rc.d/init.d | /usr/bin/grep sgemaster))
+/usr/sbin/service $svc start
+/usr/sbin/chkconfig --level=35 $svc on
 rm /etc/rc.d/rocksconfig.d/post-01-sge-qmaster
 </file>
 </configure>
