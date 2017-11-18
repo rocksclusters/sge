@@ -170,7 +170,6 @@
 	</changelog>
 
 	<package>roll-sge-usersguide</package>
-	<package>sge-ganglia</package>
 	<package>sge-insert-ethers</package>
 	<package>rocks-command-sge</package>
 	<package>compat-db47</package>
@@ -180,7 +179,6 @@
 	<package>libXp</package>
 	<package>libXp-devel</package>
 	<package>junit</package>
-	<package arch="i386">automake14</package>
 
 <post>
 
