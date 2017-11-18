@@ -101,13 +101,10 @@
 	<package os="linux">libtool-ltdl</package>
 
 <post>
-SGE_UID=400
-SGE_GID=400
+# Add an SGE system account
+/usr/bin/getent group sge &gt;/dev/null || /usr/sbin/groupadd -r sge 
+/usr/bin/getent passwd sge &gt;/dev/null || /usr/sbin/useradd -r -g sge -c "GridEngine  System account" -s /bin/true -d /opt/gridengine sge
 
-/usr/sbin/groupadd -g $SGE_GID sge
-
-/usr/sbin/useradd -c "GridEngine" -u $SGE_UID -g sge \
-	-s /bin/true -d /opt/gridengine sge 2> /dev/null
 </post>
 
 <post>

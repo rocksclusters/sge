@@ -138,7 +138,7 @@ export SGE_ROOT=/opt/gridengine
 mkdir -p $SGE_ROOT/default/spool/qmaster
 
 # sets the ownership to sge user
-chown -R 400.400 $SGE_ROOT
+chown -R sge:sge $SGE_ROOT
 
 # sets up the execution node 
 cd $SGE_ROOT &amp;&amp; \
@@ -146,8 +146,8 @@ cd $SGE_ROOT &amp;&amp; \
 	./util/install_modules/sge_host_config.conf &gt; /dev/null 2&gt;&amp;1
 
 svc=$(/usr/bin/basename $(/usr/bin/find /etc/rc.d/init.d | /usr/bin/grep sgeexecd))
-/usr/sbin/service $svc start
 /usr/sbin/chkconfig --level=35 $svc on
+/usr/sbin/service $svc start
 rm /etc/rc.d/rocksconfig.d/post-91-sge
 </file>
 </post>
