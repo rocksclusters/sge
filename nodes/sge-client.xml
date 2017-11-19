@@ -147,7 +147,11 @@ cd $SGE_ROOT &amp;&amp; \
 
 svc=$(/usr/bin/basename $(/usr/bin/find /etc/rc.d/init.d | /usr/bin/grep sgeexecd))
 /usr/sbin/chkconfig --level=35 $svc on
-/usr/sbin/service $svc start
+if [ -x /usr/sbin/systemctl ] ; then
+        echo "/usr/bin/systemctl start $svc" | /usr/bin/at now + 1 minutes
+else
+	/usr/sbin/service $svc start
+fi
 rm /etc/rc.d/rocksconfig.d/post-91-sge
 </file>
 </post>
