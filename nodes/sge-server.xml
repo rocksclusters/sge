@@ -294,7 +294,7 @@ $SGE_ROOT/bin/$SGE_ARCH/qconf -rattr queue pe_list 'make mpich mpi orte' all.q \
 
 svc=$(/usr/bin/basename $(/usr/bin/find /etc/rc.d/init.d | /usr/bin/grep sgemaster))
 /usr/sbin/chkconfig --level=35 $svc on
-if [ -x /usr/sbin/systemctl ] ; then
+if [ -x /usr/bin/systemctl ] ; then
         echo "/usr/bin/systemctl start $svc" | /usr/bin/at now + 1 minutes
 else
         /usr/sbin/service $svc start
